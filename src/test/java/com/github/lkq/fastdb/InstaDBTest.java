@@ -5,12 +5,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FastDBTest {
-    private FastDB subject;
+class InstaDBTest {
+    private InstaDB subject;
 
     @BeforeEach
     void setUp() {
-        subject = new FastDB();
+        subject = new InstaDB();
     }
 
     @Test

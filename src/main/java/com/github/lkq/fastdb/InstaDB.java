@@ -1,7 +1,7 @@
 package com.github.lkq.fastdb;
 
-public class FastDB {
-    public FastDB() {
+public class InstaDB {
+    public InstaDB() {
 
     }
 
