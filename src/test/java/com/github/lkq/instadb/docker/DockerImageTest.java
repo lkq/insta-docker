@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DockerImageTest {
 
@@ -22,8 +23,14 @@ class DockerImageTest {
 
     @Tag("integration")
     @Test
-    void willReturnTrueIfImageExists() {
-        subject = new DockerImage(dockerClient, "not-exists-image:1.0");
-        assertFalse(subject.exists(), "expected image not exist");
+    void testImageLifecycle() {
+        subject = new DockerImage(dockerClient, "hello-world");
+        subject.remove(true);
+        assertFalse(subject.exists(), "image should not exists");
+        assertTrue(subject.pull(30), "failed to pull image");
+        assertTrue(subject.exists(), "image should be exists");
+        assertTrue(subject.remove(true), "failed to remove image");
+        assertFalse(subject.exists(), "image should not exists");
+
     }
 }
