@@ -36,6 +36,55 @@ public class DockerContainer {
         this.containerName = containerName;
     }
 
+    public DockerContainer bindVolumn(String containerPath, String hostPath) {
+        volumnBindings.put(containerPath, hostPath);
+        return this;
+    }
+
+    public DockerContainer network(String networkMode) {
+        this.networkMode = networkMode;
+        return this;
+    }
+
+    public boolean run() {
+        if (!exists()) {
+            String message = "container not exist, imageId=" + imageId + ", containerName=" + containerName;
+            logger.error(message);
+            throw new DockerClientException(message);
+        } else {
+            try {
+                dockerClient.startContainerCmd(containerName).exec();
+                InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
+                Boolean state = inspectResponse.getState().getRunning();
+                boolean isRunning = state == null ? false : state;
+                if (isRunning) {
+                    attachLogging();
+                }
+                return isRunning;
+            } catch (Exception e) {
+                String message = "failed to start container, containerName=" + containerName + ", reason=" + e.getMessage();
+                logger.warn(message);
+                throw new DockerClientException(message, e);
+            }
+        }
+    }
+
+    public void attachLogging() {
+        new Thread(() -> {
+            try {
+                logger.info("attaching logs from container: {}", containerName);
+                dockerClient.logContainerCmd(containerName)
+                        .withStdErr(true)
+                        .withStdOut(true)
+                        .withFollowStream(true)
+                        .withTailAll()
+                        .exec(new ContainerLogger());
+            } catch (Exception e) {
+                logger.error("failed to redirect container log");
+            }
+        }).start();
+    }
+
     /**
      * create the docker container
      *
@@ -45,6 +94,7 @@ public class DockerContainer {
     public boolean create(boolean force) {
         boolean exists = exists();
         if (exists && !force) {
+            logger.info("container already exist, imageId={}, containerName={}, force={}", imageId, containerName, force);
             return false;
         }
         if (exists) {
@@ -55,6 +105,7 @@ public class DockerContainer {
             }
         }
         try {
+            logger.info("creating container, imageId={}, containerName={}, force={}", imageId, containerName, force);
             CreateContainerCmd cmd = dockerClient.createContainerCmd(imageId);
             cmd.withName(containerName);
 
@@ -66,6 +117,7 @@ public class DockerContainer {
 
             CreateContainerResponse createResponse = cmd.exec();
             containerId = createResponse.getId();
+            logger.info("container created, containerId={}", containerId);
             return true;
         } catch (Exception e) {
             String message = "failed to create container, imageId=" + imageId
@@ -73,16 +125,6 @@ public class DockerContainer {
             logger.error(message);
             throw new DockerClientException(message, e);
         }
-    }
-
-    public DockerContainer bindVolumn(String containerPath, String hostPath) {
-        volumnBindings.put(containerPath, hostPath);
-        return this;
-    }
-
-    public DockerContainer network(String networkMode) {
-        this.networkMode = networkMode;
-        return this;
     }
 
     /**
@@ -118,11 +160,11 @@ public class DockerContainer {
 
                 dockerClient.removeContainerCmd(containerName).withForce(force).exec();
                 if (exists()) {
-                    String message = "container still exists after remove, containerName=" + containerName;
+                    String message = "container still exists after remove, containerName=" + containerName + ", force=" + force;
                     logger.warn(message);
                     throw new DockerClientException(message);
                 }
-                logger.info("container removed, containerName={}", containerName);
+                logger.info("container removed, imageId={}, containerName={}", imageId, containerName);
                 return true;
             }
         } catch (DockerClientException e) {
