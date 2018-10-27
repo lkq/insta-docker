@@ -1,4 +1,4 @@
-package com.github.lkq.fastdb;
+package com.github.lkq.instadb;
 
 public class InstaDB {
     public InstaDB() {
