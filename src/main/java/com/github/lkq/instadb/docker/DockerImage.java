@@ -5,9 +5,10 @@ import com.github.dockerjava.api.command.InspectImageResponse;
 import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.core.command.PullImageResultCallback;
-import com.github.lkq.instadb.InstaUtils;
+import com.github.lkq.instadb.Strings;
 import org.slf4j.Logger;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -20,6 +21,8 @@ public class DockerImage {
     private String imageId;
 
     public DockerImage(DockerClient dockerClient, String imageId) {
+        Objects.requireNonNull(dockerClient, "dockerClient is required");
+        Strings.requiresNotBlank(imageId, "imageId is required");
         this.dockerClient = dockerClient;
         this.imageId = imageId;
     }
@@ -35,12 +38,12 @@ public class DockerImage {
             if (logger.isDebugEnabled()) {
                 logger.debug("inspecting image, result={}", inspectResponse.toString());
             }
-            return InstaUtils.isNotEmpty(inspectResponse.getId());
+            return Strings.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
-            logger.info("image not found: {}", e.getMessage());
+            logger.info("image not found, imageId={}, reason={}", imageId, e.getMessage());
             return false;
         } catch (Exception e) {
-            String message = "failed to check image existence, imageId=" + imageId + ", cause=" + e.getMessage();
+            String message = "failed to check image existence, imageId=" + imageId + ", reason=" + e.getMessage();
             logger.warn(message);
             throw new DockerClientException(message, e);
         }
@@ -82,13 +85,13 @@ public class DockerImage {
                     logger.warn(message);
                     throw new DockerClientException(message);
                 }
-                logger.info("image removed, imageId=: {}", imageId);
+                logger.info("image removed, imageId={}", imageId);
                 return true;
             }
         } catch (DockerClientException e) {
             throw e;
         } catch (Exception e) {
-            String message = "failed to remove image, imageId=" + imageId;
+            String message = "failed to remove image, imageId=" + imageId + ", reason=" + e.getMessage();
             logger.warn(message, e);
             throw new DockerClientException(message, e);
         }

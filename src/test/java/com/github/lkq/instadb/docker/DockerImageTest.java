@@ -28,8 +28,10 @@ class DockerImageTest {
         subject.remove(true);
         assertFalse(subject.exists(), "image should not exists");
         assertTrue(subject.pull(30), "failed to pull image");
+        assertTrue(subject.pull(30), "failed to pull image");
         assertTrue(subject.exists(), "image should be exists");
-        assertTrue(subject.remove(true), "failed to remove image");
+        assertTrue(subject.remove(false), "failed to remove image");
+        assertFalse(subject.remove(true), "return true when trying to remove non-exists image");
         assertFalse(subject.exists(), "image should not exists");
 
     }
