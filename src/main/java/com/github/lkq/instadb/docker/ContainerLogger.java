@@ -8,27 +8,30 @@ import org.slf4j.Logger;
 
 import java.util.Objects;
 
-public class ContainerLogger extends LogContainerResultCallback {
+import static org.slf4j.LoggerFactory.getLogger;
 
-    private Logger logger;
+public class ContainerLogger extends LogContainerResultCallback {
+    private static final Logger logger = getLogger(ContainerLogger.class);
+
+    private Logger redirectLogger;
     private String containerName;
 
-    public ContainerLogger(Logger logger, String containerName) {
-        Objects.requireNonNull(logger, "logger is required");
+    public ContainerLogger(Logger redirectLogger, String containerName) {
+        Objects.requireNonNull(redirectLogger, "logger is required");
         Strings.requiresNotBlank(containerName, "containerName is required");
-        this.logger = logger;
+        this.redirectLogger = redirectLogger;
         this.containerName = containerName;
     }
 
     @Override
     public void onNext(Frame frame) {
         if (frame.getPayload().length > 0) {
-            logger.info("[{}] - {}", containerName, new String(frame.getPayload(), 0, frame.getPayload().length - 1).trim());
+            redirectLogger.info("[{}] - {}", containerName, new String(frame.getPayload(), 0, frame.getPayload().length - 1).trim());
         }
     }
 
     public void attach(DockerClient dockerClient) {
-        logger.info("redirecting logs from container: {}", containerName);
+        logger.info("redirecting logs from container, containerName={}, logger={}", containerName, redirectLogger.getName());
         new Thread(() -> {
             try {
                 dockerClient.logContainerCmd(this.containerName)
@@ -38,7 +41,7 @@ public class ContainerLogger extends LogContainerResultCallback {
                         .withTailAll()
                         .exec(this);
             } catch (Exception e) {
-                logger.error("failed to redirect container log");
+                redirectLogger.error("failed to redirect container log");
             }
         }).start();
     }

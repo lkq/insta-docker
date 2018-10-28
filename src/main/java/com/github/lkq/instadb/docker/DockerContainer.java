@@ -8,8 +8,6 @@ import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Volume;
 import com.github.lkq.instadb.Strings;
-import com.sun.istack.internal.NotNull;
-import com.sun.istack.internal.Nullable;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -37,8 +35,7 @@ public class DockerContainer {
      * @param containerName the docker container name to use
      * @param logger        the logger for outputting docker console logs, will use the DockerContainer.logger if not provided
      */
-    public DockerContainer(@NotNull DockerClient dockerClient, @NotNull String imageId,
-                           @NotNull String containerName, @Nullable Logger logger) {
+    public DockerContainer(DockerClient dockerClient, String imageId, String containerName, Logger logger) {
         Objects.requireNonNull(dockerClient);
         Strings.requiresNotBlank(imageId, "imageId is required");
         Strings.requiresNotBlank(containerName, "containerName is required");
@@ -59,16 +56,22 @@ public class DockerContainer {
     }
 
     public boolean run() {
+        if (isRunning()) {
+            logger.info("container already running, containerName={}", containerName);
+            return true;
+        }
         if (exists()) {
+            logger.info("trying to run container, containerName={}", containerName);
             dockerClient.startContainerCmd(containerName).exec();
             if (isRunning()) {
                 this.containerLogger.attach(dockerClient);
                 return true;
             } else {
+                logger.debug("container fail to run, containerName={}", containerName);
                 return false;
             }
         } else {
-            logger.error("container not exist, containerName={}", containerName);
+            logger.error("fail to run container, container not exist, please create the container first, containerName={}", containerName);
             return false;
         }
     }
@@ -79,7 +82,7 @@ public class DockerContainer {
         return state == null ? false : state;
     }
 
-    public boolean stop() {
+    public boolean ensureStopped() {
         return true;
     }
 
