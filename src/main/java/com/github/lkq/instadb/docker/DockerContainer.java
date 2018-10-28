@@ -4,7 +4,6 @@ import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
-import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Volume;
@@ -23,6 +22,7 @@ public class DockerContainer {
     private String imageId;
     private String containerName;
     private String containerId;
+    private ContainerLogger containerLogger;
 
     private Map<String, String> volumnBindings = new TreeMap<>();
     private String networkMode;
@@ -34,6 +34,7 @@ public class DockerContainer {
         this.dockerClient = dockerClient;
         this.imageId = imageId;
         this.containerName = containerName;
+        this.containerLogger = new ContainerLogger(logger, containerName);
     }
 
     public DockerContainer bindVolumn(String containerPath, String hostPath) {
@@ -47,88 +48,59 @@ public class DockerContainer {
     }
 
     public boolean run() {
-        if (!exists()) {
-            String message = "container not exist, imageId=" + imageId + ", containerName=" + containerName;
-            logger.error(message);
-            throw new DockerClientException(message);
-        } else {
-            try {
-                dockerClient.startContainerCmd(containerName).exec();
-                InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
-                Boolean state = inspectResponse.getState().getRunning();
-                boolean isRunning = state == null ? false : state;
-                if (isRunning) {
-                    attachLogging();
-                }
-                return isRunning;
-            } catch (Exception e) {
-                String message = "failed to start container, containerName=" + containerName + ", reason=" + e.getMessage();
-                logger.warn(message);
-                throw new DockerClientException(message, e);
+        if (exists()) {
+            dockerClient.startContainerCmd(containerName).exec();
+            InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
+            Boolean state = inspectResponse.getState().getRunning();
+            boolean isRunning = state == null ? false : state;
+            if (isRunning) {
+                this.containerLogger.attach(dockerClient);
             }
+            return isRunning;
+        } else {
+            logger.error("container not exist, containerName={}", containerName);
+            return false;
         }
     }
 
-    public void attachLogging() {
-        new Thread(() -> {
-            try {
-                logger.info("attaching logs from container: {}", containerName);
-                dockerClient.logContainerCmd(containerName)
-                        .withStdErr(true)
-                        .withStdOut(true)
-                        .withFollowStream(true)
-                        .withTailAll()
-                        .exec(new ContainerLogger());
-            } catch (Exception e) {
-                logger.error("failed to redirect container log");
-            }
-        }).start();
+    public boolean stop() {
+        return true;
     }
 
     /**
      * create the docker container
      *
-     * @param force if set to true and the container already exist, will remove the old container and create a new one
      * @return true only if the container was actually created by this method
      */
-    public boolean create(boolean force) {
-        logger.info("creating container, imageId={}, containerName={}, force={}", imageId, containerName, force);
-        boolean exists = exists();
-        if (exists) {
-            if (force) {
-                if (remove(true)) {
-                    logger.info("container exists and removed, containerName={}", containerName);
-                } else {
-                    String message = "container not created: container already exists but failed to remove, containerName=" + containerName;
-                    logger.error(message);
-                    throw new DockerClientException(message);
-                }
+    public boolean createAndReplace() {
+        logger.info("creating container, imageId={}, containerName={}", imageId, containerName);
+        if (exists()) {
+            if (ensureNotExists()) {
+                logger.info("creating container, removed old container, containerName={}", containerName);
             } else {
-                logger.info("container not created: container already exist, imageId={}, containerName={}, force={}", imageId, containerName, force);
+                logger.error("container not created, already exists but failed to remove, containerName={}", containerName);
                 return false;
             }
         }
-        try {
-            CreateContainerCmd cmd = dockerClient.createContainerCmd(imageId);
-            cmd.withName(containerName);
+        CreateContainerCmd cmd = dockerClient.createContainerCmd(imageId);
+        cmd.withName(containerName);
 
-            List<Bind> binds = new ArrayList<>();
-            for (String key : volumnBindings.keySet()) {
-                binds.add(new Bind(volumnBindings.get(key), new Volume(key)));
-            }
-            if (binds.size() > 0) {
-                cmd.withBinds(binds);
-            }
+        List<Bind> binds = new ArrayList<>();
+        for (String key : volumnBindings.keySet()) {
+            binds.add(new Bind(volumnBindings.get(key), new Volume(key)));
+        }
+        if (binds.size() > 0) {
+            cmd.withBinds(binds);
+        }
 
-            CreateContainerResponse createResponse = cmd.exec();
-            containerId = createResponse.getId();
-            logger.info("container created, containerId={}", containerId);
+        CreateContainerResponse createResponse = cmd.exec();
+        containerId = createResponse.getId();
+        if (exists()) {
+            logger.info("container created, containerName={}, containerId={}", containerName, containerId);
             return true;
-        } catch (Exception e) {
-            String message = "failed to create container, imageId=" + imageId
-                    + ", containerName=" + containerName + ", reason=" + e.getMessage();
-            logger.error(message);
-            throw new DockerClientException(message, e);
+        } else {
+            logger.info("container not created, not exists after create, containerName={}", containerName);
+            return false;
         }
     }
 
@@ -136,48 +108,35 @@ public class DockerContainer {
      * check if the container already exists in local
      *
      * @return true if the container exists, false if the container does not exists
-     * @throws DockerClientException if error happens
      */
     public boolean exists() {
         try {
             InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
+            logger.debug("check container existence: inspect result={}", inspectResponse);
             return Strings.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
-            logger.debug("container not found, containerName={}, reason={}", containerName, e.getMessage());
+            logger.debug("check container existence: container not found, containerName=" + containerName, e);
             return false;
-        } catch (Exception e) {
-            String message = "failed to check container existence, containerName=" + containerName + ", reason=" + e.getMessage();
-            logger.error(message);
-            throw new DockerClientException(message, e);
         }
     }
 
     /**
-     * remove the container
+     * ensure the container does not exists, if it's already exist, remove it
      *
-     * @param force force remove
-     * @return true if the container was actually been removed, false if container not exists
-     * @throws DockerClientException if error happens
+     * @return true if the container does not exist or removed successfully
      */
-    public boolean remove(boolean force) {
-        try {
+    public boolean ensureNotExists() {
+        if (exists()) {
+            dockerClient.removeContainerCmd(containerName).withForce(true).exec();
             if (exists()) {
-                dockerClient.removeContainerCmd(containerName).withForce(force).exec();
-                if (exists()) {
-                    String message = "container still exists after remove, containerName=" + containerName + ", force=" + force;
-                    logger.warn(message);
-                    throw new DockerClientException(message);
-                }
-                logger.info("container removed, imageId={}, containerName={}", imageId, containerName);
+                logger.warn("failed to remove container, container still exists after remove, containerName={}", containerName);
+                return false;
+            } else {
+                logger.info("container removed, containerName={}", containerName);
                 return true;
             }
-        } catch (DockerClientException e) {
-            throw e;
-        } catch (Exception e) {
-            String message = "failed to remove container, containerName=" + containerName + ", reason=" + e.getMessage();
-            logger.error(message, e);
-            throw new DockerClientException(message, e);
+        } else {
+            return true;
         }
-        return false;
     }
 }

@@ -26,15 +26,18 @@ class DockerContainerTest {
     void testContainerLifecycle() {
         subject = new DockerContainer(dockerClient, "hello-world", "hello-world-test");
 
-        subject.remove(true);
+        DockerImage image = new DockerImage(dockerClient, "hello-world:latest");
+        image.ensureExists(30);
+
+        subject.ensureNotExists();
         assertFalse(subject.exists(), "container should not exist");
-        assertFalse(subject.remove(false), "should return false when trying to remove non-exists container");
-        assertTrue(subject.create(true), "should return true when creating container");
-        assertTrue(subject.run(), "should be able to run container");
+        assertTrue(subject.ensureNotExists(), "container should not exist");
+        assertTrue(subject.createAndReplace(), "should able to create container");
         assertTrue(subject.exists(), "should return true after container created");
-        assertFalse(subject.create(false), "should return false when container exists without using force create");
-        assertTrue(subject.create(true), "should return true when container exists and using force create");
-        assertTrue(subject.remove(false), "should return true when remove container");
+        assertTrue(subject.run(), "should be able to run container");
+        assertTrue(subject.stop(), "should be able to stop container");
+        assertTrue(subject.createAndReplace(), "should be able to replace container");
+        assertTrue(subject.ensureNotExists(), "should be able to remove container");
 
     }
 }

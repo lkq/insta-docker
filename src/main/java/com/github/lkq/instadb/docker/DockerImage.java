@@ -36,10 +36,10 @@ public class DockerImage {
     public boolean exists() {
         try {
             InspectImageResponse inspectResponse = dockerClient.inspectImageCmd(imageId).exec();
-            logger.debug("check image exists: inspect result={}", inspectResponse);
+            logger.debug("check image existence: inspect result={}", inspectResponse);
             return Strings.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
-            logger.debug("check image exists: image not found, imageId=" + imageId, e);
+            logger.debug("check image existence: image not found, imageId=" + imageId, e);
             return false;
         }
     }
