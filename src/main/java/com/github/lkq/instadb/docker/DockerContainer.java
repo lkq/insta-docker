@@ -82,8 +82,15 @@ public class DockerContainer {
         return state == null ? false : state;
     }
 
-    public boolean ensureStopped() {
-        return true;
+    public boolean ensureStopped(int timeoutInSeconds) {
+        dockerClient.stopContainerCmd(containerId).withTimeout(timeoutInSeconds * 1000).exec();
+        if (isRunning()) {
+            logger.info("unable to stop container, still running after stop, containerName={}", containerName);
+            return false;
+        } else {
+            logger.info("container stopped, containerName={}", containerName);
+            return true;
+        }
     }
 
     /**
@@ -92,12 +99,12 @@ public class DockerContainer {
      * @return true only if the container was actually created by this method
      */
     public boolean createAndReplace() {
-        logger.info("creating container, imageId={}, containerName={}", imageId, containerName);
+        logger.info("replacing container, imageId={}, containerName={}", imageId, containerName);
         if (exists()) {
             if (ensureNotExists()) {
-                logger.info("creating container, removed old container, containerName={}", containerName);
+                logger.info("removed old container, containerName={}", containerName);
             } else {
-                logger.error("container not created, already exists but failed to remove, containerName={}", containerName);
+                logger.error("unable to replace container, container exists but failed to remove, containerName={}", containerName);
                 return false;
             }
         }
