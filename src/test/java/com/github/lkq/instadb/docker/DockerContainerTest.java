@@ -6,6 +6,8 @@ import com.github.dockerjava.core.DockerClientBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,7 +26,9 @@ class DockerContainerTest {
     @Tag("integration")
     @Test
     void testContainerLifecycle() {
-        subject = new DockerContainer(dockerClient, "hello-world", "hello-world-test");
+        // get the logger specific configured for redirecting docker container logs
+        Logger logger = LoggerFactory.getLogger("docker-container-logger");
+        subject = new DockerContainer(dockerClient, "hello-world", "hello-world-test", logger);
 
         DockerImage image = new DockerImage(dockerClient, "hello-world:latest");
         image.ensureExists(30);
@@ -35,6 +39,7 @@ class DockerContainerTest {
         assertTrue(subject.createAndReplace(), "should able to create container");
         assertTrue(subject.exists(), "should return true after container created");
         assertTrue(subject.run(), "should be able to run container");
+        assertTrue(subject.isRunning(), "container should be running");
         assertTrue(subject.stop(), "should be able to stop container");
         assertTrue(subject.createAndReplace(), "should be able to replace container");
         assertTrue(subject.ensureNotExists(), "should be able to remove container");

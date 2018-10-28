@@ -8,6 +8,8 @@ import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Volume;
 import com.github.lkq.instadb.Strings;
+import com.sun.istack.internal.NotNull;
+import com.sun.istack.internal.Nullable;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -27,14 +29,23 @@ public class DockerContainer {
     private Map<String, String> volumnBindings = new TreeMap<>();
     private String networkMode;
 
-    public DockerContainer(DockerClient dockerClient, String imageId, String containerName) {
+    /**
+     * class for manipulate docker containers.
+     *
+     * @param dockerClient  the docker-java api client
+     * @param imageId       the docker image id
+     * @param containerName the docker container name to use
+     * @param logger        the logger for outputting docker console logs, will use the DockerContainer.logger if not provided
+     */
+    public DockerContainer(@NotNull DockerClient dockerClient, @NotNull String imageId,
+                           @NotNull String containerName, @Nullable Logger logger) {
         Objects.requireNonNull(dockerClient);
         Strings.requiresNotBlank(imageId, "imageId is required");
         Strings.requiresNotBlank(containerName, "containerName is required");
         this.dockerClient = dockerClient;
         this.imageId = imageId;
         this.containerName = containerName;
-        this.containerLogger = new ContainerLogger(logger, containerName);
+        this.containerLogger = new ContainerLogger(logger == null ? DockerContainer.logger : logger, containerName);
     }
 
     public DockerContainer bindVolumn(String containerPath, String hostPath) {
@@ -50,17 +61,22 @@ public class DockerContainer {
     public boolean run() {
         if (exists()) {
             dockerClient.startContainerCmd(containerName).exec();
-            InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
-            Boolean state = inspectResponse.getState().getRunning();
-            boolean isRunning = state == null ? false : state;
-            if (isRunning) {
+            if (isRunning()) {
                 this.containerLogger.attach(dockerClient);
+                return true;
+            } else {
+                return false;
             }
-            return isRunning;
         } else {
             logger.error("container not exist, containerName={}", containerName);
             return false;
         }
+    }
+
+    public boolean isRunning() {
+        InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
+        Boolean state = inspectResponse.getState().getRunning();
+        return state == null ? false : state;
     }
 
     public boolean stop() {
