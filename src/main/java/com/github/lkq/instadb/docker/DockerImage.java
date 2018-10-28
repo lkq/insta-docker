@@ -29,72 +29,62 @@ public class DockerImage {
 
     /**
      * check if the image already exists in local
+     *
      * @return true if the image exists, false if the image does not exists
      * @throws DockerClientException if error happens
      */
     public boolean exists() {
         try {
             InspectImageResponse inspectResponse = dockerClient.inspectImageCmd(imageId).exec();
-            if (logger.isDebugEnabled()) {
-                logger.debug("inspecting image, result={}", inspectResponse.toString());
-            }
+            logger.debug("check image exists: inspect result={}", inspectResponse);
             return Strings.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
-            logger.info("image not found, imageId={}, reason={}", imageId, e.getMessage());
+            logger.debug("check image exists: image not found, imageId=" + imageId, e);
             return false;
-        } catch (Exception e) {
-            String message = "failed to check image existence, imageId=" + imageId + ", reason=" + e.getMessage();
-            logger.warn(message);
-            throw new DockerClientException(message, e);
         }
     }
 
     /**
-     * pull the image from docker hub
+     * ensure the image exists, if it's not already exists, pull the image from docker hub
+     *
      * @param timeoutInSeconds pull timeout
-     * @return true if the image was actually been pulled, false if image pull timeout
-     * @throws DockerClientException if error happens
+     * @return true if the image exists or pulled successfully
      */
-    public boolean pull(int timeoutInSeconds) {
+    public boolean ensureExists(int timeoutInSeconds) {
         try {
-            return dockerClient.pullImageCmd(imageId).exec(new PullImageResultCallback())
-                    .awaitCompletion(timeoutInSeconds, TimeUnit.SECONDS);
+            if (!exists()) {
+                boolean pulled = dockerClient.pullImageCmd(imageId).exec(new PullImageResultCallback())
+                        .awaitCompletion(timeoutInSeconds, TimeUnit.SECONDS);
+                if (pulled) {
+                    logger.info("pulled image, imageId={}", imageId);
+                }
+                return pulled;
+            } else {
+                return true;
+            }
         } catch (InterruptedException e) {
-            String message = "pull image interrupted, timeout=" + timeoutInSeconds;
-            logger.warn(message);
-            throw new DockerClientException(message, e);
-        } catch (Exception e) {
-            String message = "failed to pull image, imageId=" + imageId;
-            logger.warn(message, e);
-            throw new DockerClientException(message, e);
+            logger.warn("failed to pull image, imageId=" + imageId, e);
+            return false;
         }
     }
 
     /**
-     * remove the image
-     * @param force force to remove the image
-     * @return true if the image was actually been removed, false if image not exists
-     * @throws DockerClientException if error happens
+     * ensure the image does not exists, if it's already exist, remove it
+     *
+     * @return true if the image does not exist or removed successfully
      */
-    public boolean remove(boolean force) {
-        try {
+    public boolean ensureNotExists() {
+        if (exists()) {
+            dockerClient.removeImageCmd(imageId).withForce(true).exec();
             if (exists()) {
-                dockerClient.removeImageCmd(imageId).withForce(force).exec();
-                if (exists()) {
-                    String message = "image still exists after remove, imageId=" + imageId;
-                    logger.warn(message);
-                    throw new DockerClientException(message);
-                }
+                logger.warn("failed to remove image: image still exists after remove, imageId=" + imageId);
+                return false;
+            } else {
                 logger.info("image removed, imageId={}", imageId);
                 return true;
             }
-        } catch (DockerClientException e) {
-            throw e;
-        } catch (Exception e) {
-            String message = "failed to remove image, imageId=" + imageId + ", reason=" + e.getMessage();
-            logger.warn(message, e);
-            throw new DockerClientException(message, e);
+        } else {
+            return true;
         }
-        return false;
     }
 }

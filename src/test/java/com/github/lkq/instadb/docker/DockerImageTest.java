@@ -25,13 +25,12 @@ class DockerImageTest {
     @Test
     void testImageLifecycle() {
         subject = new DockerImage(dockerClient, "hello-world");
-        subject.remove(true);
+        subject.ensureNotExists();
         assertFalse(subject.exists(), "image should not exists");
-        assertTrue(subject.pull(30), "failed to pull image");
-        assertTrue(subject.pull(30), "failed to pull image");
-        assertTrue(subject.exists(), "image should be exists");
-        assertTrue(subject.remove(false), "failed to remove image");
-        assertFalse(subject.remove(true), "return true when trying to remove non-exists image");
+        assertTrue(subject.ensureExists(60), "image should exists");
+        assertTrue(subject.ensureExists(30), "image should exists");
+        assertTrue(subject.exists(), "image should exists");
+        assertTrue(subject.ensureNotExists(), "image should not exists");
         assertFalse(subject.exists(), "image should not exists");
 
     }
