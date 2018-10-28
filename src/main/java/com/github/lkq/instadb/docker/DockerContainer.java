@@ -92,20 +92,23 @@ public class DockerContainer {
      * @return true only if the container was actually created by this method
      */
     public boolean create(boolean force) {
+        logger.info("creating container, imageId={}, containerName={}, force={}", imageId, containerName, force);
         boolean exists = exists();
-        if (exists && !force) {
-            logger.info("container already exist, imageId={}, containerName={}, force={}", imageId, containerName, force);
-            return false;
-        }
         if (exists) {
-            if (!remove(true)) {
-                String message = "container already exists but failed to remove, containerName=" + containerName;
-                logger.error(message);
-                throw new DockerClientException(message);
+            if (force) {
+                if (remove(true)) {
+                    logger.info("container exists and removed, containerName={}", containerName);
+                } else {
+                    String message = "container not created: container already exists but failed to remove, containerName=" + containerName;
+                    logger.error(message);
+                    throw new DockerClientException(message);
+                }
+            } else {
+                logger.info("container not created: container already exist, imageId={}, containerName={}, force={}", imageId, containerName, force);
+                return false;
             }
         }
         try {
-            logger.info("creating container, imageId={}, containerName={}, force={}", imageId, containerName, force);
             CreateContainerCmd cmd = dockerClient.createContainerCmd(imageId);
             cmd.withName(containerName);
 
@@ -113,7 +116,9 @@ public class DockerContainer {
             for (String key : volumnBindings.keySet()) {
                 binds.add(new Bind(volumnBindings.get(key), new Volume(key)));
             }
-            cmd.withBinds(binds);
+            if (binds.size() > 0) {
+                cmd.withBinds(binds);
+            }
 
             CreateContainerResponse createResponse = cmd.exec();
             containerId = createResponse.getId();
@@ -157,7 +162,6 @@ public class DockerContainer {
     public boolean remove(boolean force) {
         try {
             if (exists()) {
-
                 dockerClient.removeContainerCmd(containerName).withForce(force).exec();
                 if (exists()) {
                     String message = "container still exists after remove, containerName=" + containerName + ", force=" + force;
