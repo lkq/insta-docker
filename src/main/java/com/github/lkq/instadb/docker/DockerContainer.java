@@ -7,7 +7,7 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Volume;
-import com.github.lkq.instadb.Strings;
+import com.github.lkq.instadb.Values;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -24,7 +24,7 @@ public class DockerContainer {
     private String containerId;
     private ContainerLogger containerLogger;
 
-    private Map<String, String> volumnBindings = new TreeMap<>();
+    private Map<String, String> volumeBindings = new TreeMap<>();
     private String networkMode;
 
     /**
@@ -37,16 +37,16 @@ public class DockerContainer {
      */
     public DockerContainer(DockerClient dockerClient, String imageId, String containerName, Logger logger) {
         Objects.requireNonNull(dockerClient);
-        Strings.requiresNotBlank(imageId, "imageId is required");
-        Strings.requiresNotBlank(containerName, "containerName is required");
+        Values.requiresNotBlank(imageId, "imageId is required");
+        Values.requiresNotBlank(containerName, "containerName is required");
         this.dockerClient = dockerClient;
         this.imageId = imageId;
         this.containerName = containerName;
         this.containerLogger = new ContainerLogger(logger == null ? DockerContainer.logger : logger, containerName);
     }
 
-    public DockerContainer bindVolumn(String containerPath, String hostPath) {
-        volumnBindings.put(containerPath, hostPath);
+    public DockerContainer bindVolume(String containerPath, String hostPath) {
+        volumeBindings.put(containerPath, hostPath);
         return this;
     }
 
@@ -57,14 +57,15 @@ public class DockerContainer {
 
     public boolean run() {
         if (isRunning()) {
-            logger.info("container already running, containerName={}", containerName);
+            logger.debug("container already running, containerName={}", containerName);
             return true;
         }
         if (exists()) {
-            logger.info("trying to run container, containerName={}", containerName);
+            logger.debug("trying to run container, containerName={}", containerName);
             dockerClient.startContainerCmd(containerName).exec();
             if (isRunning()) {
                 this.containerLogger.attach(dockerClient);
+                logger.info("container start running, containerName={}", containerName);
                 return true;
             } else {
                 logger.debug("container fail to run, containerName={}", containerName);
@@ -112,8 +113,8 @@ public class DockerContainer {
         cmd.withName(containerName);
 
         List<Bind> binds = new ArrayList<>();
-        for (String key : volumnBindings.keySet()) {
-            binds.add(new Bind(volumnBindings.get(key), new Volume(key)));
+        for (String key : volumeBindings.keySet()) {
+            binds.add(new Bind(volumeBindings.get(key), new Volume(key)));
         }
         if (binds.size() > 0) {
             cmd.withBinds(binds);
@@ -139,7 +140,7 @@ public class DockerContainer {
         try {
             InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
             logger.debug("check container existence: inspect result={}", inspectResponse);
-            return Strings.isNotBlank(inspectResponse.getId());
+            return Values.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
             logger.debug("check container existence: container not found, containerName=" + containerName, e);
             return false;
@@ -164,5 +165,16 @@ public class DockerContainer {
         } else {
             return true;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "{" +
+                "\"imageId\":\"" + imageId + "\"" +
+                ", \"containerName\":\"" + containerName + "\"" +
+                ", \"containerId\":\"" + containerId + "\"" +
+                ", \"volumeBindings\":" + volumeBindings +
+                ", \"networkMode\":\"" + networkMode + "\"" +
+                '}';
     }
 }

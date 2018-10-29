@@ -39,7 +39,7 @@ class DockerContainerTest {
         assertTrue(subject.createAndReplace(), "should able to create container");
         assertTrue(subject.exists(), "should return true after container created");
         assertTrue(subject.run(), "should be able to run container");
-        assertTrue(subject.run(), "should be able to run container");
+        assertTrue(subject.run(), "will return true if container already running");
         assertTrue(subject.isRunning(), "container should be running");
         assertTrue(subject.ensureStopped(30), "should be able to stop container");
         assertFalse(subject.isRunning(), "container should not be running");

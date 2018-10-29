@@ -3,7 +3,7 @@ package com.github.lkq.instadb.docker;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.core.command.LogContainerResultCallback;
-import com.github.lkq.instadb.Strings;
+import com.github.lkq.instadb.Values;
 import org.slf4j.Logger;
 
 import java.util.Objects;
@@ -18,7 +18,7 @@ public class ContainerLogger extends LogContainerResultCallback {
 
     public ContainerLogger(Logger redirectLogger, String containerName) {
         Objects.requireNonNull(redirectLogger, "logger is required");
-        Strings.requiresNotBlank(containerName, "containerName is required");
+        Values.requiresNotBlank(containerName, "containerName is required");
         this.redirectLogger = redirectLogger;
         this.containerName = containerName;
     }
