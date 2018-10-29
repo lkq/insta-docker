@@ -5,8 +5,7 @@ import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.exception.NotFoundException;
-import com.github.dockerjava.api.model.Bind;
-import com.github.dockerjava.api.model.Volume;
+import com.github.dockerjava.api.model.*;
 import com.github.lkq.instadb.Values;
 import org.slf4j.Logger;
 
@@ -18,17 +17,18 @@ public class DockerContainer {
 
     private static final Logger logger = getLogger(DockerContainer.class);
 
-    private DockerClient dockerClient;
-    private String imageId;
-    private String containerName;
-    private String containerId;
-    private ContainerLogger containerLogger;
+    private final Map<String, String> volumeBindings = new TreeMap<>();
+    private final ArrayList<PortBinding> portBindings = new ArrayList<>();
 
-    private Map<String, String> volumeBindings = new TreeMap<>();
+    private final DockerClient dockerClient;
+    private final String imageId;
+    private final String containerName;
+    private final ContainerLogger containerLogger;
+    private String containerId;
     private String networkMode;
 
     /**
-     * class for manipulate docker containers.
+     * class for manipulating docker containers.
      *
      * @param dockerClient  the docker-java api client
      * @param imageId       the docker image id
@@ -47,6 +47,11 @@ public class DockerContainer {
 
     public DockerContainer bindVolume(String containerPath, String hostPath) {
         volumeBindings.put(containerPath, hostPath);
+        return this;
+    }
+
+    public DockerContainer bindPort(int containerPort, int hostPort, InternetProtocol protocol) {
+        portBindings.add(new PortBinding(containerPort, hostPort, protocol));
         return this;
     }
 
@@ -112,12 +117,27 @@ public class DockerContainer {
         CreateContainerCmd cmd = dockerClient.createContainerCmd(imageId);
         cmd.withName(containerName);
 
-        List<Bind> binds = new ArrayList<>();
-        for (String key : volumeBindings.keySet()) {
-            binds.add(new Bind(volumeBindings.get(key), new Volume(key)));
-        }
-        if (binds.size() > 0) {
+        if (volumeBindings.size() > 0) {
+            List<Bind> binds = new ArrayList<>();
+            for (String containerPath : volumeBindings.keySet()) {
+                String hostPath = volumeBindings.get(containerPath);
+                logger.info("binding volume: container={}, host={}", containerPath, hostPath);
+                binds.add(new Bind(hostPath, new Volume(containerPath)));
+            }
             cmd.withBinds(binds);
+        }
+        if (portBindings.size() > 0) {
+            List<ExposedPort> exposedPorts = new ArrayList<>();
+            Ports bindings = new Ports();
+            for (PortBinding portBinding : portBindings) {
+                logger.info("binding port: container={}, host={}, protocol={}",
+                        portBinding.containerPort(), portBinding.hostPort(), portBinding.protocol());
+                ExposedPort exposedPort = portBinding.getExposedPort();
+                exposedPorts.add(exposedPort);
+
+                bindings.bind(exposedPort, portBinding.getPortBinding());
+            }
+            cmd.withExposedPorts(exposedPorts).withPortBindings(bindings);
         }
 
         CreateContainerResponse createResponse = cmd.exec();
