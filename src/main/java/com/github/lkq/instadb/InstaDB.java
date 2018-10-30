@@ -35,6 +35,10 @@ public class InstaDB {
         return new InstaDB("postgres:latest", name, port);
     }
 
+    public static InstaDB mysql(String name, int port) {
+        return new InstaDB("mysql:latest", name, port);
+    }
+
     public InstaDB init() {
         if (dockerClient == null) {
             dockerClient = DockerClientFactory.defaultClient();
@@ -56,6 +60,10 @@ public class InstaDB {
     public InstaDB dockerLogger(Logger dockerLogger) {
         this.dockerLogger = dockerLogger;
         return this;
+    }
+
+    public DockerContainer container() {
+        return dockerContainer;
     }
 
     public void start(int timeoutInSeconds) {

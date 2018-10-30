@@ -18,7 +18,8 @@ public class DockerContainer {
     private static final Logger logger = getLogger(DockerContainer.class);
 
     private final Map<String, String> volumeBindings = new TreeMap<>();
-    private final ArrayList<PortBinding> portBindings = new ArrayList<>();
+    private final List<PortBinding> portBindings = new ArrayList<>();
+    private final List<String> environmentVariables = new ArrayList<>();
 
     private final DockerClient dockerClient;
     private final String imageId;
@@ -52,6 +53,11 @@ public class DockerContainer {
 
     public DockerContainer bindPort(int containerPort, int hostPort, InternetProtocol protocol) {
         portBindings.add(new PortBinding(containerPort, hostPort, protocol));
+        return this;
+    }
+
+    public DockerContainer environmentVariables(List<String> environmentVariables) {
+        this.environmentVariables.addAll(environmentVariables);
         return this;
     }
 
@@ -138,6 +144,9 @@ public class DockerContainer {
                 bindings.bind(exposedPort, portBinding.getPortBinding());
             }
             cmd.withExposedPorts(exposedPorts).withPortBindings(bindings);
+        }
+        if (environmentVariables.size() > 0) {
+            cmd.withEnv(environmentVariables);
         }
 
         CreateContainerResponse createResponse = cmd.exec();
