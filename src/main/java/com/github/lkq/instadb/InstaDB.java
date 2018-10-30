@@ -17,26 +17,24 @@ public class InstaDB {
 
     private String imageName;
     private String containerName;
-    private int hostPort;
 
     private DockerImage dockerImage;
     private Logger dockerLogger;
     private DockerContainer dockerContainer;
 
-    public InstaDB(String imageName, String containerName, int hostPort) {
+    public InstaDB(String imageName, String containerName) {
         Values.requiresNotBlank(imageName, "image name is required");
         Values.requiresNotBlank(containerName, "container name is required");
         this.imageName = imageName;
         this.containerName = containerName;
-        this.hostPort = hostPort;
     }
 
-    public static InstaDB postgresql(String name, int port) {
-        return new InstaDB("postgres:latest", name, port);
+    public static InstaDB postgresql(String name) {
+        return new InstaDB("postgres:latest", name);
     }
 
-    public static InstaDB mysql(String name, int port) {
-        return new InstaDB("mysql:latest", name, port);
+    public static InstaDB mysql(String name) {
+        return new InstaDB("mysql:latest", name);
     }
 
     public InstaDB init() {

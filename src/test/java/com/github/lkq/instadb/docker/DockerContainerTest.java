@@ -52,7 +52,8 @@ class DockerContainerTest {
         assertTrue(subject.ensureStopped(30), "failed to ensure container is stopped");
         assertFalse(subject.isRunning(), "container is not running");
         assertTrue(subject.createAndReplace(), "failed to create and replace container");
-        assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
+
+        assertTrue(subject.ensureNotExists(), "failed to clear up container after test");
     }
 
     @Tag("integration")
@@ -75,6 +76,8 @@ class DockerContainerTest {
         Ports.Binding[] binding = bindings.get(portBinding.getExposedPort());
         assertEquals(1, binding.length);
         assertEquals(String.valueOf(hostPort), binding[0].getHostPortSpec());
+
+        assertTrue(subject.ensureNotExists(), "failed to clear up container after test");
     }
 
     @Tag("integration")
@@ -96,5 +99,8 @@ class DockerContainerTest {
         assertTrue(binds.length > 0, "volume binds is empty");
         assertEquals("/test_volume", binds[0].getVolume().getPath());
         assertEquals("/Users/kingson/Sandbox/github/insta-db/target/test-classes/", binds[0].getPath());
+
+        assertTrue(subject.ensureNotExists(), "failed to clear up container after test");
+
     }
 }
