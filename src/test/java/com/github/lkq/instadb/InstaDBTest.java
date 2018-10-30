@@ -7,13 +7,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.sql.*;
 import java.util.Arrays;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.slf4j.LoggerFactory.getLogger;
+
 class InstaDBTest {
+
+    private static final Logger logger = getLogger(InstaDBTest.class);
+
     private InstaDB subject;
-    private final Logger dockerLogger = LoggerFactory.getLogger("docker-container-logger");
+    private final Logger dockerLogger = getLogger("docker-container-logger");
 
     @BeforeEach
     void setUp() {
@@ -21,16 +29,39 @@ class InstaDBTest {
 
     @Tag("integration")
     @Test
-    void canStartPGContainer() throws InterruptedException {
+    void canStartPGContainer() throws SQLException, InterruptedException {
         subject = InstaDB.postgresql("instadb-pg-test")
                 .dockerClient(DockerClientFactory.defaultClient())
                 .dockerLogger(dockerLogger)
                 .init();
+        try {
 
-        subject.container().bindPort(5432, PortFinder.find(), InternetProtocol.TCP);
+            int hostPort = PortFinder.find();
+            subject.container().bindPort(5432, hostPort, InternetProtocol.TCP);
+            subject.container().environmentVariables(Arrays.asList("POSTGRES_PASSWORD=" + hostPort));
 
-        subject.start(60);
+            subject.start(60);
 
+            Connection connection = null;
+            int retryCount = 5;
+            while (connection == null && retryCount-- > 0) {
+                try {
+                    connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + hostPort + "/", "postgres", String.valueOf(hostPort));
+                } catch (SQLException e) {
+                    logger.warn("failed to connect to postgres, retrying {}", retryCount);
+                    Thread.sleep(3000);
+                }
+            }
+            assertNotNull(connection, "failed to create connection");
+            PreparedStatement statement = connection.prepareStatement("select character_value from information_schema.sql_implementation_info where implementation_info_name = 'DBMS NAME';");
+            ResultSet resultSet = statement.executeQuery();
+            assertTrue(resultSet.next(), "failed to query dbms name");
+            String dbmsName = resultSet.getString(1);
+            assertEquals("PostgreSQL", dbmsName);
+        } finally {
+            subject.container().ensureStopped(60);
+            subject.container().ensureNotExists();
+        }
     }
 
     @Tag("integration")

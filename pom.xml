@@ -91,6 +91,11 @@
             <version>1.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.2.5</version>
+        </dependency>
 
     </dependencies>
 
@@ -198,5 +203,11 @@
         </profile>
     </profiles>
 
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>http://repo1.maven.org/maven2/</url>
+        </repository>
+    </repositories>
 
 </project>
