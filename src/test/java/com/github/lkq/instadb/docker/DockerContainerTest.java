@@ -59,7 +59,7 @@ class DockerContainerTest {
 
     @Tag("integration")
     @Test
-    void canStartContainerWithPortBindingsAndCmd() throws InterruptedException {
+    void canStartContainerWithPortBindingsAndCmd() {
         int containerPort = 65432;
         int hostPort = 65431;
         subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger)
@@ -91,6 +91,7 @@ class DockerContainerTest {
         String containerPath = "/test_volume";
         String hostPath = ClassLoader.getSystemResource(".").getPath();
         subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger)
+                .commands(Arrays.asList("/bin/sleep", "3"))
                 .bindVolume(containerPath, hostPath);
 
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
