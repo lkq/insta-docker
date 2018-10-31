@@ -104,7 +104,7 @@ class DockerContainerTest {
         Bind[] binds = container.getHostConfig().getBinds();
         assertTrue(binds.length > 0, "volume binds is empty");
         assertEquals("/test_volume", binds[0].getVolume().getPath());
-        assertEquals("/Users/kingson/Sandbox/github/insta-db/target/test-classes/", binds[0].getPath());
+        assertEquals(hostPath, binds[0].getPath());
 
         assertTrue(subject.ensureNotExists(), "failed to clear up container after test");
 
