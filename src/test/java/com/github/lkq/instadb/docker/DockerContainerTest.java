@@ -14,14 +14,15 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class DockerContainerTest {
 
-    public static final String CONTAINER_NAME = "hello-world-test";
-    public static final String IMAGE_NAME = "hello-world:latest";
+    public static final String CONTAINER_NAME = "instadb-container-test";
+    public static final String IMAGE_NAME = "busybox:latest";
     private static Logger dockerLogger = LoggerFactory.getLogger("docker-container-logger");
     private static DockerClient dockerClient;
 
@@ -58,10 +59,11 @@ class DockerContainerTest {
 
     @Tag("integration")
     @Test
-    void canStartContainerWithPortBindings() throws InterruptedException {
+    void canStartContainerWithPortBindingsAndCmd() throws InterruptedException {
         int containerPort = 65432;
         int hostPort = 65431;
         subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger)
+                .commands(Arrays.asList("/bin/sleep", "3"))
                 .bindPort(containerPort, hostPort, InternetProtocol.TCP);
 
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
@@ -76,6 +78,9 @@ class DockerContainerTest {
         Ports.Binding[] binding = bindings.get(portBinding.getExposedPort());
         assertEquals(1, binding.length);
         assertEquals(String.valueOf(hostPort), binding[0].getHostPortSpec());
+
+        String[] cmd = container.getConfig().getCmd();
+        assertArrayEquals(new String[]{"/bin/sleep", "3"}, cmd);
 
         assertTrue(subject.ensureNotExists(), "failed to clear up container after test");
     }

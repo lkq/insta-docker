@@ -20,13 +20,13 @@ public class DockerContainer {
     private final Map<String, String> volumeBindings = new TreeMap<>();
     private final List<PortBinding> portBindings = new ArrayList<>();
     private final List<String> environmentVariables = new ArrayList<>();
+    private final List<String> commands = new ArrayList<>();
 
     private final DockerClient dockerClient;
     private final String imageId;
     private final String containerName;
     private final ContainerLogger containerLogger;
     private String containerId;
-    private String networkMode;
 
     /**
      * class for manipulating docker containers.
@@ -61,8 +61,8 @@ public class DockerContainer {
         return this;
     }
 
-    public DockerContainer network(String networkMode) {
-        this.networkMode = networkMode;
+    public DockerContainer commands(List<String> commands) {
+        this.commands.addAll(commands);
         return this;
     }
 
@@ -148,6 +148,9 @@ public class DockerContainer {
         if (environmentVariables.size() > 0) {
             cmd.withEnv(environmentVariables);
         }
+        if (commands.size() > 0) {
+            cmd.withCmd(commands);
+        }
 
         CreateContainerResponse createResponse = cmd.exec();
         containerId = createResponse.getId();
@@ -199,11 +202,15 @@ public class DockerContainer {
     @Override
     public String toString() {
         return "{" +
-                "\"imageId\":\"" + imageId + "\"" +
+                "\"volumeBindings\":" + volumeBindings +
+                ", \"portBindings\":" + portBindings +
+                ", \"environmentVariables\":" + environmentVariables +
+                ", \"commands\":" + commands +
+                ", \"dockerClient\":" + dockerClient +
+                ", \"imageId\":\"" + imageId + "\"" +
                 ", \"containerName\":\"" + containerName + "\"" +
+                ", \"containerLogger\":" + containerLogger +
                 ", \"containerId\":\"" + containerId + "\"" +
-                ", \"volumeBindings\":" + volumeBindings +
-                ", \"networkMode\":\"" + networkMode + "\"" +
                 '}';
     }
 }
