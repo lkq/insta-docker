@@ -42,23 +42,13 @@ class InstaDBTest {
 
             subject.start(60);
 
-            Connection connection = null;
-            int retryCount = 5;
-            while (connection == null && retryCount-- > 0) {
-                try {
-                    connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + hostPort + "/", "postgres", String.valueOf(hostPort));
-                } catch (SQLException e) {
-                    logger.warn("failed to connect to postgres, retrying {}", retryCount);
-                    Thread.sleep(3000);
-                }
-            }
-            assertNotNull(connection, "failed to create connection");
-            PreparedStatement statement = connection.prepareStatement("select character_value from information_schema.sql_implementation_info where implementation_info_name = 'DBMS NAME';");
-            ResultSet resultSet = statement.executeQuery();
+            ResultSet resultSet = executeQuery("jdbc:postgresql://localhost:" + hostPort + "/", "postgres", String.valueOf(hostPort),
+                    "select character_value from information_schema.sql_implementation_info where implementation_info_name = 'DBMS NAME';");
             assertTrue(resultSet.next(), "failed to query dbms name");
             String dbmsName = resultSet.getString(1);
             assertEquals("PostgreSQL", dbmsName);
         } finally {
+            logger.info("clearing test container");
             subject.container().ensureStopped(60);
             subject.container().ensureNotExists();
         }
@@ -66,16 +56,45 @@ class InstaDBTest {
 
     @Tag("integration")
     @Test
-    void canStartMySQLContainer() {
+    void canStartMySQLContainer() throws SQLException, InterruptedException {
         subject = InstaDB.mysql("instadb-mysql-test")
                 .dockerClient(DockerClientFactory.defaultClient())
                 .dockerLogger(dockerLogger)
                 .init();
-        subject.container().environmentVariables(Arrays.asList("MYSQL_ROOT_PASSWORD=123"));
+        try {
+            int hostPort = PortFinder.find();
+            subject.container().environmentVariables(Arrays.asList("MYSQL_ROOT_PASSWORD=" + hostPort));
 
-        subject.container().bindPort(3306, PortFinder.find(), InternetProtocol.TCP);
-        subject.container().bindPort(33060, PortFinder.find(), InternetProtocol.TCP);
+            subject.container().bindPort(3306, hostPort, InternetProtocol.TCP);
+            subject.container().bindPort(33060, PortFinder.find(), InternetProtocol.TCP);
 
-        subject.start(60);
+            subject.start(60);
+
+            ResultSet resultSet = executeQuery("jdbc:mysql://localhost:" + hostPort + "/", "root", String.valueOf(hostPort),
+                    "select TRANSACTIONS from information_schema.ENGINES where engine = 'InnoDB';");
+            assertTrue(resultSet.next(), "failed to query mysql");
+            String dbmsName = resultSet.getString(1);
+            assertEquals("YES", dbmsName);
+        } finally {
+            logger.info("clearing test container");
+            subject.container().ensureStopped(60);
+            subject.container().ensureNotExists();
+        }
+    }
+
+    private ResultSet executeQuery(String url, String user, String password, String queryStatement) throws InterruptedException, SQLException {
+        Connection connection = null;
+        int retryCount = 20;
+        while (connection == null && retryCount-- > 0) {
+            try {
+                connection = DriverManager.getConnection(url, user, password);
+            } catch (SQLException e) {
+                logger.warn("failed to connect to db, retrying " + retryCount, e);
+                Thread.sleep(5000);
+            }
+        }
+        assertNotNull(connection, "failed to create to db");
+        PreparedStatement statement = connection.prepareStatement(queryStatement);
+        return statement.executeQuery();
     }
 }

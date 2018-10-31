@@ -95,7 +95,7 @@ public class DockerContainer {
     }
 
     public boolean ensureStopped(int timeoutInSeconds) {
-        dockerClient.stopContainerCmd(containerId).withTimeout(timeoutInSeconds * 1000).exec();
+        dockerClient.stopContainerCmd(containerId).withTimeout(timeoutInSeconds).exec();
         if (isRunning()) {
             logger.info("unable to stop container, still running after stop, containerName={}", containerName);
             return false;
