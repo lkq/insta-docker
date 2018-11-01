@@ -5,6 +5,15 @@
     <groupId>com.github.lkq</groupId>
     <artifactId>insta-db</artifactId>
     <version>0.1.3-SNAPSHOT</version>
+
+    <!--required for nexus staging - begin-->
+    <name>Deploy Dependencies Maven Plugin</name>
+    <description>use maven to download artifacts in the dependency list from your private repository and upload to
+        remote machine
+    </description>
+    <url>https://github.com/lkq/deploy-deps-maven-plugin</url>
+    <!--required for nexus staging - end-->
+
     <scm>
         <connection>scm:git:https://github.com/lkq/insta-db.git</connection>
         <url>https://github.com/lkq/insta-db</url>
