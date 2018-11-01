@@ -7,11 +7,9 @@
     <version>0.1.4-SNAPSHOT</version>
 
     <!--required for nexus staging - begin-->
-    <name>Deploy Dependencies Maven Plugin</name>
-    <description>use maven to download artifacts in the dependency list from your private repository and upload to
-        remote machine
-    </description>
-    <url>https://github.com/lkq/deploy-deps-maven-plugin</url>
+    <name>Insta DB</name>
+    <description>create and run a DB container instantly</description>
+    <url>https://github.com/lkq/insta-db</url>
     <!--required for nexus staging - end-->
 
     <scm>
