@@ -1,11 +1,11 @@
-package com.github.lkq.instadb.docker;
+package com.github.lkq.instadocker.docker;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.InspectImageResponse;
 import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.core.command.PullImageResultCallback;
-import com.github.lkq.instadb.Values;
+import com.github.lkq.instadocker.Values;
 import org.slf4j.Logger;
 
 import java.util.Objects;

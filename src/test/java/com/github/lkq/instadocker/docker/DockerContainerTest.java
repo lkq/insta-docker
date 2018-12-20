@@ -1,4 +1,4 @@
-package com.github.lkq.instadb.docker;
+package com.github.lkq.instadocker.docker;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.InspectContainerResponse;
@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class DockerContainerTest {
 
-    public static final String CONTAINER_NAME = "instadb-container-test";
+    public static final String CONTAINER_NAME = "instadocker-container-test";
     public static final String IMAGE_NAME = "busybox:latest";
     private static Logger dockerLogger = LoggerFactory.getLogger("docker-container-logger");
     private static DockerClient dockerClient;

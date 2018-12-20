@@ -1,8 +1,8 @@
-package com.github.lkq.instadb;
+package com.github.lkq.instadocker;
 
 import com.github.dockerjava.api.model.InternetProtocol;
-import com.github.lkq.instadb.docker.DockerClientFactory;
-import com.github.lkq.instadb.docker.PortFinder;
+import com.github.lkq.instadocker.docker.DockerClientFactory;
+import com.github.lkq.instadocker.docker.PortFinder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -16,11 +16,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
-class InstaDBTest {
+class InstaDockerTest {
 
-    private static final Logger logger = getLogger(InstaDBTest.class);
+    private static final Logger logger = getLogger(InstaDockerTest.class);
 
-    private InstaDB subject;
+    private InstaDocker subject;
     private final Logger dockerLogger = getLogger("docker-container-logger");
 
     @BeforeEach
@@ -30,7 +30,7 @@ class InstaDBTest {
     @Tag("integration")
     @Test
     void canStartPGContainer() throws SQLException, InterruptedException {
-        subject = InstaDB.postgresql("instadb-pg-test")
+        subject = new InstaDocker("postgres:latest", "insta-docker-pg-test")
                 .dockerClient(DockerClientFactory.defaultClient())
                 .dockerLogger(dockerLogger)
                 .init();
@@ -57,7 +57,7 @@ class InstaDBTest {
     @Tag("integration")
     @Test
     void canStartMySQLContainer() throws SQLException, InterruptedException {
-        subject = InstaDB.mysql("instadb-mysql-test")
+        subject = new InstaDocker("mysql:latest", "insta-docker-mysql-test")
                 .dockerClient(DockerClientFactory.defaultClient())
                 .dockerLogger(dockerLogger)
                 .init();

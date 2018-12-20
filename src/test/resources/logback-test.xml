@@ -17,7 +17,7 @@
         <appender-ref ref="DockerConsole"/>
     </logger>
 
-    <logger name="com.github.lkq.instadb" level="info" additivity="false">
+    <logger name="com.github.lkq.instadocker" level="info" additivity="false">
         <appender-ref ref="Console"/>
     </logger>
 

@@ -1,4 +1,4 @@
-package com.github.lkq.instadb.docker;
+package com.github.lkq.instadocker.docker;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.core.DefaultDockerClientConfig;

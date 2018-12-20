@@ -1,4 +1,4 @@
-package com.github.lkq.instadb.docker;
+package com.github.lkq.instadocker.docker;
 
 import javax.ws.rs.NotFoundException;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package com.github.lkq.instadb.docker;
+package com.github.lkq.instadocker.docker;
 
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.InternetProtocol;

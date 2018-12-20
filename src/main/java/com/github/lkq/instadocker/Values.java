@@ -1,4 +1,4 @@
-package com.github.lkq.instadb;
+package com.github.lkq.instadocker;
 
 public class Values {
     public static void requiresNotBlank(String value, String message) {

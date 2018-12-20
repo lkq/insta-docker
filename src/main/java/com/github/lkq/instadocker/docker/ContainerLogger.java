@@ -1,9 +1,9 @@
-package com.github.lkq.instadb.docker;
+package com.github.lkq.instadocker.docker;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.core.command.LogContainerResultCallback;
-import com.github.lkq.instadb.Values;
+import com.github.lkq.instadocker.Values;
 import org.slf4j.Logger;
 
 import java.util.Objects;

@@ -3,23 +3,23 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.lkq</groupId>
-    <artifactId>insta-db</artifactId>
+    <artifactId>insta-docker</artifactId>
     <version>0.1.4-SNAPSHOT</version>
 
     <!--required for nexus staging - begin-->
-    <name>Insta DB</name>
-    <description>create and run a DB container instantly</description>
-    <url>https://github.com/lkq/insta-db</url>
+    <name>Insta Docker</name>
+    <description>create and run a docker container instantly</description>
+    <url>https://github.com/lkq/insta-docker</url>
     <!--required for nexus staging - end-->
 
     <scm>
-        <connection>scm:git:https://github.com/lkq/insta-db.git</connection>
-        <url>https://github.com/lkq/insta-db</url>
+        <connection>scm:git:https://github.com/lkq/insta-docker.git</connection>
+        <url>https://github.com/lkq/insta-docker</url>
         <tag>HEAD</tag>
     </scm>
     <ciManagement>
         <system>travis-ci</system>
-        <url>https://travis-ci.org/lkq/insta-db</url>
+        <url>https://travis-ci.org/lkq/insta-docker</url>
     </ciManagement>
     <licenses>
         <license>

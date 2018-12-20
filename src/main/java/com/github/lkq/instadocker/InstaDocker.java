@@ -1,15 +1,15 @@
-package com.github.lkq.instadb;
+package com.github.lkq.instadocker;
 
 import com.github.dockerjava.api.DockerClient;
-import com.github.lkq.instadb.docker.DockerClientFactory;
-import com.github.lkq.instadb.docker.DockerContainer;
-import com.github.lkq.instadb.docker.DockerImage;
+import com.github.lkq.instadocker.docker.DockerClientFactory;
+import com.github.lkq.instadocker.docker.DockerContainer;
+import com.github.lkq.instadocker.docker.DockerImage;
 import org.slf4j.Logger;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-public class InstaDB {
-    private static final Logger logger = getLogger(InstaDB.class);
+public class InstaDocker {
+    private static final Logger logger = getLogger(InstaDocker.class);
 
     private boolean initialized = false;
 
@@ -22,22 +22,14 @@ public class InstaDB {
     private Logger dockerLogger;
     private DockerContainer dockerContainer;
 
-    public InstaDB(String imageName, String containerName) {
+    public InstaDocker(String imageName, String containerName) {
         Values.requiresNotBlank(imageName, "image name is required");
         Values.requiresNotBlank(containerName, "container name is required");
         this.imageName = imageName;
         this.containerName = containerName;
     }
 
-    public static InstaDB postgresql(String name) {
-        return new InstaDB("postgres:latest", name);
-    }
-
-    public static InstaDB mysql(String name) {
-        return new InstaDB("mysql:latest", name);
-    }
-
-    public InstaDB init() {
+    public InstaDocker init() {
         if (dockerClient == null) {
             dockerClient = DockerClientFactory.defaultClient();
         }
@@ -50,12 +42,12 @@ public class InstaDB {
         return this;
     }
 
-    public InstaDB dockerClient(DockerClient dockerClient) {
+    public InstaDocker dockerClient(DockerClient dockerClient) {
         this.dockerClient = dockerClient;
         return this;
     }
 
-    public InstaDB dockerLogger(Logger dockerLogger) {
+    public InstaDocker dockerLogger(Logger dockerLogger) {
         this.dockerLogger = dockerLogger;
         return this;
     }
@@ -65,7 +57,7 @@ public class InstaDB {
     }
 
     public void start(int timeoutInSeconds) {
-        Values.requiresTrue(initialized, "InstaDB not initialized, forget to call init()?");
+        Values.requiresTrue(initialized, "Instance not initialized, forget to call init()?");
 
         if (!dockerImage.ensureExists(timeoutInSeconds)) {
             throw new IllegalStateException("failed to ensure docker image exists: " + dockerImage);
