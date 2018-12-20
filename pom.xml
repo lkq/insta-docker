@@ -4,7 +4,7 @@
 
     <groupId>com.github.lkq</groupId>
     <artifactId>insta-docker</artifactId>
-    <version>0.1.6</version>
+    <version>0.1.7-SNAPSHOT</version>
 
     <!--required for nexus staging - begin-->
     <name>Insta Docker</name>
@@ -15,7 +15,7 @@
     <scm>
         <connection>scm:git:https://github.com/lkq/insta-docker.git</connection>
         <url>https://github.com/lkq/insta-docker</url>
-        <tag>insta-docker-0.1.6</tag>
+        <tag>HEAD</tag>
     </scm>
     <ciManagement>
         <system>travis-ci</system>
