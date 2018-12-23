@@ -5,7 +5,8 @@ import com.github.dockerjava.api.command.InspectImageResponse;
 import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.core.command.PullImageResultCallback;
-import com.github.lkq.instadocker.Assert;
+import com.github.lkq.instadocker.util.Assert;
+import com.github.lkq.instadocker.util.InstaUtils;
 import org.slf4j.Logger;
 
 import java.util.Objects;
@@ -37,7 +38,7 @@ public class DockerImage {
         try {
             InspectImageResponse inspectResponse = dockerClient.inspectImageCmd(imageId).exec();
             logger.debug("check image existence: inspect result={}", inspectResponse);
-            return Assert.isNotBlank(inspectResponse.getId());
+            return InstaUtils.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
             logger.debug("check image existence: image not found, imageId=" + imageId, e);
             return false;

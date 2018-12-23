@@ -4,6 +4,7 @@ import com.github.dockerjava.api.DockerClient;
 import com.github.lkq.instadocker.docker.DockerClientFactory;
 import com.github.lkq.instadocker.docker.DockerContainer;
 import com.github.lkq.instadocker.docker.DockerImage;
+import com.github.lkq.instadocker.util.Assert;
 import org.slf4j.Logger;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -30,6 +31,7 @@ public class InstaDocker {
     }
 
     public InstaDocker init() {
+        Assert.requiresTrue(!initialized, "instance already initialized");
         if (dockerClient == null) {
             dockerClient = DockerClientFactory.defaultClient();
         }
@@ -57,7 +59,7 @@ public class InstaDocker {
     }
 
     public void start(int timeoutInSeconds) {
-        Assert.requiresTrue(initialized, "Instance not initialized, forget to call init()?");
+        Assert.requiresTrue(initialized, "instance haven't been initialized, forget to call init()?");
 
         if (!dockerImage.ensureExists(timeoutInSeconds)) {
             throw new IllegalStateException("failed to ensure docker image exists: " + dockerImage);

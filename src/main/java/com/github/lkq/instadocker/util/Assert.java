@@ -1,4 +1,4 @@
-package com.github.lkq.instadocker;
+package com.github.lkq.instadocker.util;
 
 public class Assert {
     public static void requiresNotBlank(String value, String message) {
@@ -13,11 +13,7 @@ public class Assert {
         }
     }
 
-    public static boolean isNotBlank(String value) {
-        return value != null && !"".equals(value.trim());
-    }
-
-    public static void evenNumber(int number, String message) {
+    public static void requiresEvenNumber(int number, String message) {
         if (number / 2 != 0) {
             throw new IllegalArgumentException(message);
         }

@@ -3,7 +3,7 @@ package com.github.lkq.instadocker.docker;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.core.command.LogContainerResultCallback;
-import com.github.lkq.instadocker.Assert;
+import com.github.lkq.instadocker.util.Assert;
 import org.slf4j.Logger;
 
 import static org.slf4j.LoggerFactory.getLogger;

@@ -9,9 +9,10 @@ import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.api.model.Volume;
-import com.github.lkq.instadocker.Assert;
+import com.github.lkq.instadocker.util.Assert;
 import com.github.lkq.instadocker.docker.entity.PortBinding;
 import com.github.lkq.instadocker.docker.entity.VolumeBinding;
+import com.github.lkq.instadocker.util.InstaUtils;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -54,7 +55,7 @@ public class DockerContainer {
     }
 
     public DockerContainer bindVolumes(String... containerAndHostPaths) {
-        Assert.evenNumber(containerAndHostPaths.length, "container and host path pair doesn't match");
+        Assert.requiresEvenNumber(containerAndHostPaths.length, "container and host path pair doesn't match");
         for (int i = 0; i < containerAndHostPaths.length / 2; i++) {
             bindVolume(containerAndHostPaths[i], containerAndHostPaths[i + 1]);
         }
@@ -191,7 +192,7 @@ public class DockerContainer {
         try {
             InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
             logger.debug("check container existence: inspect result={}", inspectResponse);
-            return Assert.isNotBlank(inspectResponse.getId());
+            return InstaUtils.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
             logger.debug("check container existence: container not found, containerName=" + containerName, e);
             return false;
