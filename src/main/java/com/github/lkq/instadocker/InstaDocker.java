@@ -23,8 +23,8 @@ public class InstaDocker {
     private DockerContainer dockerContainer;
 
     public InstaDocker(String imageName, String containerName) {
-        Values.requiresNotBlank(imageName, "image name is required");
-        Values.requiresNotBlank(containerName, "container name is required");
+        Assert.requiresNotBlank(imageName, "image name is required");
+        Assert.requiresNotBlank(containerName, "container name is required");
         this.imageName = imageName;
         this.containerName = containerName;
     }
@@ -57,7 +57,7 @@ public class InstaDocker {
     }
 
     public void start(int timeoutInSeconds) {
-        Values.requiresTrue(initialized, "Instance not initialized, forget to call init()?");
+        Assert.requiresTrue(initialized, "Instance not initialized, forget to call init()?");
 
         if (!dockerImage.ensureExists(timeoutInSeconds)) {
             throw new IllegalStateException("failed to ensure docker image exists: " + dockerImage);

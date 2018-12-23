@@ -5,7 +5,7 @@ import com.github.dockerjava.api.command.InspectImageResponse;
 import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.core.command.PullImageResultCallback;
-import com.github.lkq.instadocker.Values;
+import com.github.lkq.instadocker.Assert;
 import org.slf4j.Logger;
 
 import java.util.Objects;
@@ -22,7 +22,7 @@ public class DockerImage {
 
     public DockerImage(DockerClient dockerClient, String imageId) {
         Objects.requireNonNull(dockerClient, "dockerClient is required");
-        Values.requiresNotBlank(imageId, "imageId is required");
+        Assert.requiresNotBlank(imageId, "imageId is required");
         this.dockerClient = dockerClient;
         this.imageId = imageId;
     }
@@ -37,7 +37,7 @@ public class DockerImage {
         try {
             InspectImageResponse inspectResponse = dockerClient.inspectImageCmd(imageId).exec();
             logger.debug("check image existence: inspect result={}", inspectResponse);
-            return Values.isNotBlank(inspectResponse.getId());
+            return Assert.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
             logger.debug("check image existence: image not found, imageId=" + imageId, e);
             return false;

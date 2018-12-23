@@ -5,11 +5,17 @@ import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.exception.NotFoundException;
-import com.github.dockerjava.api.model.*;
-import com.github.lkq.instadocker.Values;
+import com.github.dockerjava.api.model.Bind;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.Ports;
+import com.github.dockerjava.api.model.Volume;
+import com.github.lkq.instadocker.Assert;
+import com.github.lkq.instadocker.docker.entity.PortBinding;
+import com.github.lkq.instadocker.docker.entity.VolumeBinding;
 import org.slf4j.Logger;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -17,16 +23,17 @@ public class DockerContainer {
 
     private static final Logger logger = getLogger(DockerContainer.class);
 
-    private final Map<String, String> volumeBindings = new TreeMap<>();
+    private final DockerClient dockerClient;
+    private final String imageId;
+    private final String containerName;
+    private String containerId;
+
+    private final List<VolumeBinding> volumeBindings = new ArrayList<>();
     private final List<PortBinding> portBindings = new ArrayList<>();
     private final List<String> environmentVariables = new ArrayList<>();
     private final List<String> commands = new ArrayList<>();
 
-    private final DockerClient dockerClient;
-    private final String imageId;
-    private final String containerName;
     private final ContainerLogger containerLogger;
-    private String containerId;
 
     /**
      * class for manipulating docker containers.
@@ -38,21 +45,34 @@ public class DockerContainer {
      */
     public DockerContainer(DockerClient dockerClient, String imageId, String containerName, Logger logger) {
         Objects.requireNonNull(dockerClient);
-        Values.requiresNotBlank(imageId, "imageId is required");
-        Values.requiresNotBlank(containerName, "containerName is required");
+        Assert.requiresNotBlank(imageId, "imageId is required");
+        Assert.requiresNotBlank(containerName, "containerName is required");
         this.dockerClient = dockerClient;
         this.imageId = imageId;
         this.containerName = containerName;
-        this.containerLogger = new ContainerLogger(logger == null ? DockerContainer.logger : logger, containerName);
+        this.containerLogger = new ContainerLogger(containerName, logger == null ? DockerContainer.logger : logger);
     }
 
-    public DockerContainer bindVolume(String containerPath, String hostPath) {
-        volumeBindings.put(containerPath, hostPath);
+    public DockerContainer bindVolumes(String... containerAndHostPaths) {
+        Assert.evenNumber(containerAndHostPaths.length, "container and host path pair doesn't match");
+        for (int i = 0; i < containerAndHostPaths.length / 2; i++) {
+            bindVolume(containerAndHostPaths[i], containerAndHostPaths[i + 1]);
+        }
         return this;
     }
 
-    public DockerContainer bindPort(int containerPort, int hostPort, InternetProtocol protocol) {
-        portBindings.add(new PortBinding(containerPort, hostPort, protocol));
+    public DockerContainer bindVolume(String containerPath, String hostPath) {
+        volumeBindings.add(new VolumeBinding(containerPath, hostPath));
+        return this;
+    }
+
+    public DockerContainer bindPort(int containerPort, int hostPort, String protocol) {
+        portBindings.add(new PortBinding(protocol, containerPort, hostPort));
+        return this;
+    }
+
+    public DockerContainer bindPorts(List<PortBinding> portBindings) {
+        portBindings.addAll(portBindings);
         return this;
     }
 
@@ -123,25 +143,24 @@ public class DockerContainer {
         CreateContainerCmd cmd = dockerClient.createContainerCmd(imageId);
         cmd.withName(containerName);
 
-        if (volumeBindings.size() > 0) {
-            List<Bind> binds = new ArrayList<>();
-            for (String containerPath : volumeBindings.keySet()) {
-                String hostPath = volumeBindings.get(containerPath);
-                logger.info("binding volume: container={}, host={}", containerPath, hostPath);
-                binds.add(new Bind(hostPath, new Volume(containerPath)));
-            }
-            cmd.withBinds(binds);
-        }
+        List<Bind> binds = volumeBindings.stream().map(volumeBinding -> {
+            String containerPath = volumeBinding.containerPath();
+            String hostPath = volumeBinding.hostPath();
+            logger.info("binding volume: container={}, host={}", containerPath, hostPath);
+            return new Bind(hostPath, new Volume(containerPath));
+        }).collect(Collectors.toList());
+        cmd.withBinds(binds);
+
         if (portBindings.size() > 0) {
             List<ExposedPort> exposedPorts = new ArrayList<>();
             Ports bindings = new Ports();
             for (PortBinding portBinding : portBindings) {
                 logger.info("binding port: container={}, host={}, protocol={}",
                         portBinding.containerPort(), portBinding.hostPort(), portBinding.protocol());
-                ExposedPort exposedPort = portBinding.getExposedPort();
+                ExposedPort exposedPort = portBinding.toExposedPort();
                 exposedPorts.add(exposedPort);
 
-                bindings.bind(exposedPort, portBinding.getPortBinding());
+                bindings.bind(exposedPort, Ports.Binding.bindPort(portBinding.hostPort()));
             }
             cmd.withExposedPorts(exposedPorts).withPortBindings(bindings);
         }
@@ -172,7 +191,7 @@ public class DockerContainer {
         try {
             InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
             logger.debug("check container existence: inspect result={}", inspectResponse);
-            return Values.isNotBlank(inspectResponse.getId());
+            return Assert.isNotBlank(inspectResponse.getId());
         } catch (NotFoundException e) {
             logger.debug("check container existence: container not found, containerName=" + containerName, e);
             return false;

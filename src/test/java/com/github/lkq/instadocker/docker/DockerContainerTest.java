@@ -8,6 +8,7 @@ import com.github.dockerjava.api.model.InternetProtocol;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.lkq.instadocker.docker.entity.PortBinding;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -64,7 +65,7 @@ class DockerContainerTest {
         int hostPort = 65431;
         subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger)
                 .commands(Arrays.asList("/bin/sleep", "3"))
-                .bindPort(containerPort, hostPort, InternetProtocol.TCP);
+                .bindPort(containerPort, hostPort, InternetProtocol.TCP.name());
 
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
         assertTrue(subject.createAndReplace(), "failed to create and replace container");
@@ -74,8 +75,8 @@ class DockerContainerTest {
         // the inspect command response will not containers the port bindings
         InspectContainerResponse container = dockerClient.inspectContainerCmd(CONTAINER_NAME).exec();
         Map<ExposedPort, Ports.Binding[]> bindings = container.getNetworkSettings().getPorts().getBindings();
-        PortBinding portBinding = new PortBinding(containerPort, hostPort, InternetProtocol.TCP);
-        Ports.Binding[] binding = bindings.get(portBinding.getExposedPort());
+        PortBinding portBinding = new PortBinding(InternetProtocol.TCP.name(), containerPort, hostPort);
+        Ports.Binding[] binding = bindings.get(portBinding.toExposedPort());
         assertEquals(1, binding.length);
         assertEquals(String.valueOf(hostPort), binding[0].getHostPortSpec());
 

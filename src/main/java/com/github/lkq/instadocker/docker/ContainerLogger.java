@@ -3,24 +3,24 @@ package com.github.lkq.instadocker.docker;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.core.command.LogContainerResultCallback;
-import com.github.lkq.instadocker.Values;
+import com.github.lkq.instadocker.Assert;
 import org.slf4j.Logger;
-
-import java.util.Objects;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * redirect container log to slf4j
+ */
 public class ContainerLogger extends LogContainerResultCallback {
     private static final Logger logger = getLogger(ContainerLogger.class);
 
     private Logger redirectLogger;
     private String containerName;
 
-    public ContainerLogger(Logger redirectLogger, String containerName) {
-        Objects.requireNonNull(redirectLogger, "logger is required");
-        Values.requiresNotBlank(containerName, "containerName is required");
-        this.redirectLogger = redirectLogger;
+    public ContainerLogger(String containerName, Logger redirectedLogger) {
+        Assert.requiresNotBlank(containerName, "containerName is required");
         this.containerName = containerName;
+        this.redirectLogger = redirectedLogger != null ? redirectedLogger : logger;
     }
 
     @Override

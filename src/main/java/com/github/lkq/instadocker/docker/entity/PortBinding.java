@@ -1,39 +1,37 @@
-package com.github.lkq.instadocker.docker;
+package com.github.lkq.instadocker.docker.entity;
 
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.InternetProtocol;
-import com.github.dockerjava.api.model.Ports;
+import com.github.lkq.instadocker.exception.InstaDockerException;
 
 public class PortBinding {
+    private String protocol;
     private int containerPort;
     private int hostPort;
-    private InternetProtocol protocol;
 
-    public PortBinding(int containerPort, int hostPort, InternetProtocol protocol) {
+    public PortBinding(String protocol, int containerPort, int hostPort) {
         this.containerPort = containerPort;
         this.hostPort = hostPort;
         this.protocol = protocol;
     }
 
-    public PortBinding(int port, InternetProtocol protocol) {
-        this(port, port, protocol);
-    }
-
     public PortBinding(int port) {
-        this(port, port, InternetProtocol.TCP);
+        this(InternetProtocol.TCP.name(), port, port);
     }
 
-    public ExposedPort getExposedPort() {
+    public ExposedPort toExposedPort() {
         switch (protocol) {
-            case UDP:
+            case "UDP":
                 return ExposedPort.udp(containerPort);
-            default:
+            case "TCP":
                 return ExposedPort.tcp(containerPort);
+            default:
+                throw new InstaDockerException("unsupported protocol");
         }
     }
 
-    public Ports.Binding getPortBinding() {
-        return Ports.Binding.bindPort(hostPort);
+    public String protocol() {
+        return protocol;
     }
 
     public int containerPort() {
@@ -44,16 +42,12 @@ public class PortBinding {
         return hostPort;
     }
 
-    public InternetProtocol protocol() {
-        return protocol;
-    }
-
     @Override
     public String toString() {
         return "{" +
-                "\"containerPort\":" + containerPort +
+                "\"protocol\":\"" + protocol + "\"" +
+                ", \"containerPort\":" + containerPort +
                 ", \"hostPort\":" + hostPort +
-                ", \"protocol\":" + protocol +
                 '}';
     }
 }
