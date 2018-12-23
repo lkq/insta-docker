@@ -37,7 +37,7 @@ class InstaDockerTest {
         try {
 
             int hostPort = PortFinder.find();
-            subject.container().bindPort(5432, hostPort, InternetProtocol.TCP.name());
+            subject.container().portBinding(InternetProtocol.TCP.name(), 5432, hostPort);
             subject.container().environmentVariables(Arrays.asList("POSTGRES_PASSWORD=" + hostPort));
 
             subject.start(60);
@@ -65,8 +65,8 @@ class InstaDockerTest {
             int hostPort = PortFinder.find();
             subject.container().environmentVariables(Arrays.asList("MYSQL_ROOT_PASSWORD=" + hostPort));
 
-            subject.container().bindPort(3306, hostPort, InternetProtocol.TCP.name());
-            subject.container().bindPort(33060, PortFinder.find(), InternetProtocol.TCP.name());
+            subject.container().portBinding(InternetProtocol.TCP.name(), 3306, hostPort);
+            subject.container().portBinding(InternetProtocol.TCP.name(), 33060, PortFinder.find());
 
             subject.start(60);
 

@@ -48,8 +48,8 @@ class DockerContainerTest {
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exist");
         assertTrue(subject.createAndReplace(), "failed to create and replace container");
         assertTrue(subject.exists(), "should return true after container created");
-        assertTrue(subject.run(), "should be able to run container");
-        assertTrue(subject.run(), "should return true if container already running");
+        assertTrue(subject.ensureRunning(), "should be able to run container");
+        assertTrue(subject.ensureRunning(), "should return true if container already running");
         assertTrue(subject.isRunning(), "container is not running");
         assertTrue(subject.ensureStopped(30), "failed to ensure container is stopped");
         assertFalse(subject.isRunning(), "container is not running");
@@ -65,11 +65,11 @@ class DockerContainerTest {
         int hostPort = 65431;
         subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger)
                 .commands(Arrays.asList("/bin/sleep", "3"))
-                .bindPort(containerPort, hostPort, InternetProtocol.TCP.name());
+                .portBinding(InternetProtocol.TCP.name(), containerPort, hostPort);
 
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
         assertTrue(subject.createAndReplace(), "failed to create and replace container");
-        assertTrue(subject.run(), "failed to start container");
+        assertTrue(subject.ensureRunning(), "failed to start container");
 
         // it have potential race condition, if the container stopped too soon,
         // the inspect command response will not containers the port bindings
@@ -93,11 +93,11 @@ class DockerContainerTest {
         String hostPath = ClassLoader.getSystemResource(".").getPath();
         subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger)
                 .commands(Arrays.asList("/bin/sleep", "3"))
-                .bindVolume(containerPath, hostPath);
+                .volumeBinding(containerPath, hostPath);
 
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
         assertTrue(subject.createAndReplace(), "failed to create and replace container");
-        assertTrue(subject.run(), "failed to start container");
+        assertTrue(subject.ensureRunning(), "failed to start container");
 
         // it have potential race condition, if the container stopped too soon,
         // the inspect command response will not containers the volume bindings

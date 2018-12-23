@@ -25,6 +25,7 @@ public class DockerContainer {
     private static final Logger logger = getLogger(DockerContainer.class);
 
     private final DockerClient dockerClient;
+
     private final String imageId;
     private final String containerName;
     private String containerId;
@@ -54,25 +55,25 @@ public class DockerContainer {
         this.containerLogger = new ContainerLogger(containerName, logger == null ? DockerContainer.logger : logger);
     }
 
-    public DockerContainer bindVolumes(String... containerAndHostPaths) {
+    public DockerContainer volumeBindings(String... containerAndHostPaths) {
         Assert.requiresEvenNumber(containerAndHostPaths.length, "container and host path pair doesn't match");
         for (int i = 0; i < containerAndHostPaths.length / 2; i++) {
-            bindVolume(containerAndHostPaths[i], containerAndHostPaths[i + 1]);
+            volumeBinding(containerAndHostPaths[i], containerAndHostPaths[i + 1]);
         }
         return this;
     }
 
-    public DockerContainer bindVolume(String containerPath, String hostPath) {
+    public DockerContainer volumeBinding(String containerPath, String hostPath) {
         volumeBindings.add(new VolumeBinding(containerPath, hostPath));
         return this;
     }
 
-    public DockerContainer bindPort(int containerPort, int hostPort, String protocol) {
+    public DockerContainer portBinding(String protocol, int containerPort, int hostPort) {
         portBindings.add(new PortBinding(protocol, containerPort, hostPort));
         return this;
     }
 
-    public DockerContainer bindPorts(List<PortBinding> portBindings) {
+    public DockerContainer portBindings(List<PortBinding> portBindings) {
         portBindings.addAll(portBindings);
         return this;
     }
@@ -87,24 +88,24 @@ public class DockerContainer {
         return this;
     }
 
-    public boolean run() {
+    public boolean ensureRunning() {
         if (isRunning()) {
             logger.debug("container already running, containerName={}", containerName);
             return true;
         }
         if (exists()) {
-            logger.debug("trying to run container, containerName={}", containerName);
+            logger.debug("trying to start container, containerName={}", containerName);
             dockerClient.startContainerCmd(containerName).exec();
             if (isRunning()) {
                 this.containerLogger.attach(dockerClient);
-                logger.info("container start running, containerName={}", containerName);
+                logger.info("container started, containerName={}", containerName);
                 return true;
             } else {
-                logger.debug("container fail to run, containerName={}", containerName);
+                logger.debug("container fails to start, containerName={}", containerName);
                 return false;
             }
         } else {
-            logger.error("fail to run container, container not exist, please create the container first, containerName={}", containerName);
+            logger.error("fail to start container, container does not exist, please create the container first, containerName={}", containerName);
             return false;
         }
     }
@@ -129,7 +130,7 @@ public class DockerContainer {
     /**
      * create the docker container
      *
-     * @return true only if the container was actually created by this method
+     * @return true only if the container was actually created by this method invocation
      */
     public boolean createAndReplace() {
         logger.info("replacing container, imageId={}, containerName={}", imageId, containerName);
@@ -154,16 +155,16 @@ public class DockerContainer {
 
         if (portBindings.size() > 0) {
             List<ExposedPort> exposedPorts = new ArrayList<>();
-            Ports bindings = new Ports();
+            Ports ports = new Ports();
             for (PortBinding portBinding : portBindings) {
-                logger.info("binding port: container={}, host={}, protocol={}",
-                        portBinding.containerPort(), portBinding.hostPort(), portBinding.protocol());
+                logger.info("binding port: protocol={}, container={}, host={}",
+                        portBinding.protocol(), portBinding.containerPort(), portBinding.hostPort());
                 ExposedPort exposedPort = portBinding.toExposedPort();
                 exposedPorts.add(exposedPort);
 
-                bindings.bind(exposedPort, Ports.Binding.bindPort(portBinding.hostPort()));
+                ports.bind(exposedPort, Ports.Binding.bindPort(portBinding.hostPort()));
             }
-            cmd.withExposedPorts(exposedPorts).withPortBindings(bindings);
+            cmd.withExposedPorts(exposedPorts).withPortBindings(ports);
         }
         if (environmentVariables.size() > 0) {
             cmd.withEnv(environmentVariables);
@@ -178,7 +179,7 @@ public class DockerContainer {
             logger.info("container created, containerName={}, containerId={}", containerName, containerId);
             return true;
         } else {
-            logger.info("container not created, not exists after create, containerName={}", containerName);
+            logger.info("container not created, not exists after created, containerName={}", containerName);
             return false;
         }
     }
@@ -222,15 +223,15 @@ public class DockerContainer {
     @Override
     public String toString() {
         return "{" +
-                "\"volumeBindings\":" + volumeBindings +
+                "\"dockerClient\":" + dockerClient +
+                ", \"imageId\":\"" + imageId + "\"" +
+                ", \"containerName\":\"" + containerName + "\"" +
+                ", \"containerId\":\"" + containerId + "\"" +
+                ", \"volumeBindings\":" + volumeBindings +
                 ", \"portBindings\":" + portBindings +
                 ", \"environmentVariables\":" + environmentVariables +
                 ", \"commands\":" + commands +
-                ", \"dockerClient\":" + dockerClient +
-                ", \"imageId\":\"" + imageId + "\"" +
-                ", \"containerName\":\"" + containerName + "\"" +
                 ", \"containerLogger\":" + containerLogger +
-                ", \"containerId\":\"" + containerId + "\"" +
                 '}';
     }
 }

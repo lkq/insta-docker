@@ -67,7 +67,7 @@ public class InstaDocker {
         if (!dockerContainer.createAndReplace()) {
             throw new IllegalStateException("failed to create and replace container: " + dockerContainer);
         }
-        if (!dockerContainer.run()) {
+        if (!dockerContainer.ensureRunning()) {
             throw new IllegalStateException("failed to run container: " + dockerContainer);
         }
     }
