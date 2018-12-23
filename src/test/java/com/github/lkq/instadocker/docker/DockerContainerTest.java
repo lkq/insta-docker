@@ -9,6 +9,9 @@ import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.lkq.instadocker.docker.entity.PortBinding;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -23,9 +26,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class DockerContainerTest {
 
     public static final String CONTAINER_NAME = "instadocker-container-test";
-    public static final String IMAGE_NAME = "busybox:latest";
-    private static Logger dockerLogger = LoggerFactory.getLogger("docker-container-logger");
+    public static final String BUSY_BOX = "busybox:latest";
+    private static Logger dockerLogger = LoggerFactory.getLogger(DockerContainerTest.class);
     private static DockerClient dockerClient;
+    private Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     private DockerContainer subject;
 
@@ -34,14 +38,14 @@ class DockerContainerTest {
         // get the logger specific configured for redirecting docker container logs
         DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder();
         dockerClient = DockerClientBuilder.getInstance(configBuilder.build()).build();
-        DockerImage image = new DockerImage(dockerClient, IMAGE_NAME);
+        DockerImage image = new DockerImage(dockerClient, BUSY_BOX);
         image.ensureExists(60);
     }
 
     @Tag("integration")
     @Test
     void testContainerLifecycle() {
-        subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger);
+        subject = new DockerContainer(dockerClient, BUSY_BOX, CONTAINER_NAME, dockerLogger);
 
         subject.ensureNotExists();
         assertFalse(subject.exists(), "container should not exist");
@@ -60,10 +64,37 @@ class DockerContainerTest {
 
     @Tag("integration")
     @Test
+    void canStartContainer() {
+        subject = new DockerContainer(dockerClient, BUSY_BOX, CONTAINER_NAME, dockerLogger)
+                .environmentVariables(Arrays.asList("VAR1=value1", "VAR2=value2"))
+                .commands(Arrays.asList("/bin/sleep", "3"))
+                .network("host");
+
+        assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
+        assertTrue(subject.createAndReplace(), "failed to create and replace container");
+        assertTrue(subject.ensureRunning(), "failed to start container");
+
+        // it have potential race condition, if the container stopped too soon,
+        // the inspect command response will not containers the volume bindings
+        InspectContainerResponse container = dockerClient.inspectContainerCmd(CONTAINER_NAME).exec();
+
+        dockerLogger.info(gson.toJson(container));
+
+        Assertions.assertArrayEquals(new String[]{"/bin/sleep", "3"}, container.getConfig().getCmd());
+        Assertions.assertNotNull(container.getNetworkSettings().getNetworks().get("host"), "network is not host");
+        Assertions.assertEquals("VAR1=value1", container.getConfig().getEnv()[0]);
+        Assertions.assertEquals("VAR2=value2", container.getConfig().getEnv()[1]);
+
+        assertTrue(subject.ensureNotExists(), "failed to clear up container after test");
+
+    }
+
+    @Tag("integration")
+    @Test
     void canStartContainerWithPortBindingsAndCmd() {
         int containerPort = 65432;
         int hostPort = 65431;
-        subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger)
+        subject = new DockerContainer(dockerClient, BUSY_BOX, CONTAINER_NAME, dockerLogger)
                 .commands(Arrays.asList("/bin/sleep", "3"))
                 .portBinding(InternetProtocol.TCP.name(), containerPort, hostPort);
 
@@ -91,7 +122,7 @@ class DockerContainerTest {
     void canStartContainerWithVolumeBindings() {
         String containerPath = "/test_volume";
         String hostPath = ClassLoader.getSystemResource(".").getPath();
-        subject = new DockerContainer(dockerClient, IMAGE_NAME, CONTAINER_NAME, dockerLogger)
+        subject = new DockerContainer(dockerClient, BUSY_BOX, CONTAINER_NAME, dockerLogger)
                 .commands(Arrays.asList("/bin/sleep", "3"))
                 .volumeBinding(containerPath, hostPath);
 

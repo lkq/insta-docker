@@ -28,7 +28,8 @@ public class DockerContainer {
 
     private final String imageId;
     private final String containerName;
-    private String containerId;
+
+    private String network;
 
     private final List<VolumeBinding> volumeBindings = new ArrayList<>();
     private final List<PortBinding> portBindings = new ArrayList<>();
@@ -36,6 +37,11 @@ public class DockerContainer {
     private final List<String> commands = new ArrayList<>();
 
     private final ContainerLogger containerLogger;
+
+    /**
+     * the docker container id, available after start
+     */
+    private String containerId;
 
     /**
      * class for manipulating docker containers.
@@ -53,6 +59,16 @@ public class DockerContainer {
         this.imageId = imageId;
         this.containerName = containerName;
         this.containerLogger = new ContainerLogger(containerName, logger == null ? DockerContainer.logger : logger);
+    }
+
+    public DockerContainer network(String network) {
+        this.network = network;
+        return this;
+    }
+
+    public DockerContainer volumeBindings(List<VolumeBinding> volumeBindings) {
+        this.volumeBindings.addAll(volumeBindings);
+        return this;
     }
 
     public DockerContainer volumeBindings(String... containerAndHostPaths) {
@@ -144,6 +160,10 @@ public class DockerContainer {
         }
         CreateContainerCmd cmd = dockerClient.createContainerCmd(imageId);
         cmd.withName(containerName);
+
+        if (network != null) {
+            cmd.withNetworkMode(network);
+        }
 
         List<Bind> binds = volumeBindings.stream().map(volumeBinding -> {
             String containerPath = volumeBinding.containerPath();
