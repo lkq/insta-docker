@@ -50,14 +50,15 @@ class DockerContainerTest {
         subject.ensureNotExists();
         assertFalse(subject.exists(), "container should not exist");
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exist");
-        assertTrue(subject.createAndReplace(), "failed to create and replace container");
+        assertTrue(subject.ensureExists(), "container should exists");
+        assertTrue(subject.createOrReplace(), "failed to create and replace container");
         assertTrue(subject.exists(), "should return true after container created");
         assertTrue(subject.ensureRunning(), "should be able to run container");
         assertTrue(subject.ensureRunning(), "should return true if container already running");
         assertTrue(subject.isRunning(), "container is not running");
         assertTrue(subject.ensureStopped(30), "failed to ensure container is stopped");
         assertFalse(subject.isRunning(), "container is not running");
-        assertTrue(subject.createAndReplace(), "failed to create and replace container");
+        assertTrue(subject.createOrReplace(), "failed to create and replace container");
 
         assertTrue(subject.ensureNotExists(), "failed to clear up container after test");
     }
@@ -68,10 +69,12 @@ class DockerContainerTest {
         subject = new DockerContainer(dockerClient, BUSY_BOX, CONTAINER_NAME, dockerLogger)
                 .environmentVariables(Arrays.asList("VAR1=value1", "VAR2=value2"))
                 .commands(Arrays.asList("/bin/sleep", "3"))
+                .hostName("hostName")
                 .network("host");
 
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
-        assertTrue(subject.createAndReplace(), "failed to create and replace container");
+        assertTrue(subject.createOrReplace(), "failed to create and replace container");
+        assertTrue(subject.ensureExists(), "container not exists");
         assertTrue(subject.ensureRunning(), "failed to start container");
 
         // it have potential race condition, if the container stopped too soon,
@@ -84,6 +87,7 @@ class DockerContainerTest {
         Assertions.assertNotNull(container.getNetworkSettings().getNetworks().get("host"), "network is not host");
         Assertions.assertEquals("VAR1=value1", container.getConfig().getEnv()[0]);
         Assertions.assertEquals("VAR2=value2", container.getConfig().getEnv()[1]);
+        Assertions.assertEquals("hostName", container.getConfig().getHostName());
 
         assertTrue(subject.ensureNotExists(), "failed to clear up container after test");
 
@@ -99,7 +103,8 @@ class DockerContainerTest {
                 .portBinding(InternetProtocol.TCP.name(), containerPort, hostPort);
 
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
-        assertTrue(subject.createAndReplace(), "failed to create and replace container");
+        assertTrue(subject.createOrReplace(), "failed to create and replace container");
+        assertTrue(subject.ensureExists(), "container not exists");
         assertTrue(subject.ensureRunning(), "failed to start container");
 
         // it have potential race condition, if the container stopped too soon,
@@ -127,7 +132,8 @@ class DockerContainerTest {
                 .volumeBinding(containerPath, hostPath);
 
         assertTrue(subject.ensureNotExists(), "failed to ensure container not exists");
-        assertTrue(subject.createAndReplace(), "failed to create and replace container");
+        assertTrue(subject.createOrReplace(), "failed to create and replace container");
+        assertTrue(subject.ensureExists(), "container not exists");
         assertTrue(subject.ensureRunning(), "failed to start container");
 
         // it have potential race condition, if the container stopped too soon,

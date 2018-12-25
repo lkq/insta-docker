@@ -29,6 +29,7 @@ public class DockerContainer {
     private final String imageId;
     private final String containerName;
 
+    private String hostName;
     private String network;
 
     private final List<VolumeBinding> volumeBindings = new ArrayList<>();
@@ -61,6 +62,11 @@ public class DockerContainer {
         this.containerLogger = new ContainerLogger(containerName, logger == null ? DockerContainer.logger : logger);
     }
 
+    public DockerContainer hostName(String hostName) {
+        this.hostName = hostName;
+        return this;
+    }
+
     public DockerContainer network(String network) {
         this.network = network;
         return this;
@@ -90,7 +96,7 @@ public class DockerContainer {
     }
 
     public DockerContainer portBindings(List<PortBinding> portBindings) {
-        portBindings.addAll(portBindings);
+        this.portBindings.addAll(portBindings);
         return this;
     }
 
@@ -144,11 +150,22 @@ public class DockerContainer {
     }
 
     /**
+     * ensure the docker container exists
+     * @return true if the container exists or being created
+     */
+    public boolean ensureExists() {
+        if (!exists()) {
+            return createOrReplace();
+        }
+        return exists();
+    }
+
+    /**
      * create the docker container
      *
      * @return true only if the container was actually created by this method invocation
      */
-    public boolean createAndReplace() {
+    public boolean createOrReplace() {
         logger.info("replacing container, imageId={}, containerName={}", imageId, containerName);
         if (exists()) {
             if (ensureNotExists()) {
@@ -161,6 +178,9 @@ public class DockerContainer {
         CreateContainerCmd cmd = dockerClient.createContainerCmd(imageId);
         cmd.withName(containerName);
 
+        if (hostName != null) {
+            cmd.withHostName(hostName);
+        }
         if (network != null) {
             cmd.withNetworkMode(network);
         }
@@ -246,12 +266,14 @@ public class DockerContainer {
                 "\"dockerClient\":" + dockerClient +
                 ", \"imageId\":\"" + imageId + "\"" +
                 ", \"containerName\":\"" + containerName + "\"" +
-                ", \"containerId\":\"" + containerId + "\"" +
+                ", \"hostName\":\"" + hostName + "\"" +
+                ", \"network\":\"" + network + "\"" +
                 ", \"volumeBindings\":" + volumeBindings +
                 ", \"portBindings\":" + portBindings +
                 ", \"environmentVariables\":" + environmentVariables +
                 ", \"commands\":" + commands +
                 ", \"containerLogger\":" + containerLogger +
+                ", \"containerId\":\"" + containerId + "\"" +
                 '}';
     }
 }

@@ -27,7 +27,7 @@ Setup
     instaDocker.container().bindPort(5432, hostPort, InternetProtocol.TCP)
                             .environmentVariables(Arrays.asList("POSTGRES_PASSWORD=password01"));
 
-    instaDocker.start(60);
+    instaDocker.start(true, 60);
 
 Connect
 

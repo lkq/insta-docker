@@ -40,7 +40,7 @@ class InstaDockerTest {
             subject.container().portBinding(InternetProtocol.TCP.name(), 5432, hostPort);
             subject.container().environmentVariables(Arrays.asList("POSTGRES_PASSWORD=" + hostPort));
 
-            subject.start(60);
+            subject.start(true, 60);
 
             ResultSet resultSet = executeQuery("jdbc:postgresql://localhost:" + hostPort + "/", "postgres", String.valueOf(hostPort),
                     "select character_value from information_schema.sql_implementation_info where implementation_info_name = 'DBMS NAME';");
@@ -68,7 +68,7 @@ class InstaDockerTest {
             subject.container().portBinding(InternetProtocol.TCP.name(), 3306, hostPort);
             subject.container().portBinding(InternetProtocol.TCP.name(), 33060, PortFinder.find());
 
-            subject.start(60);
+            subject.start(true, 60);
 
             ResultSet resultSet = executeQuery("jdbc:mysql://localhost:" + hostPort + "/", "root", String.valueOf(hostPort),
                     "select TRANSACTIONS from information_schema.ENGINES where engine = 'InnoDB';");

@@ -58,14 +58,20 @@ public class InstaDocker {
         return dockerContainer;
     }
 
-    public void start(int timeoutInSeconds) {
+    public void start(boolean cleanStart, int timeoutInSeconds) {
         Assert.requiresTrue(initialized, "instance haven't been initialized, forget to call init()?");
 
         if (!dockerImage.ensureExists(timeoutInSeconds)) {
-            throw new IllegalStateException("failed to ensure docker image exists: " + dockerImage);
+            throw new IllegalStateException("failed to pull image: " + dockerImage);
         }
-        if (!dockerContainer.createAndReplace()) {
-            throw new IllegalStateException("failed to create and replace container: " + dockerContainer);
+        if (cleanStart) {
+            if (!dockerContainer.createOrReplace()) {
+                throw new IllegalStateException("failed to create or replace container: " + dockerContainer);
+            }
+        } else {
+            if (!dockerContainer.ensureExists()) {
+                throw new IllegalStateException("failed to create container: " + dockerContainer);
+            }
         }
         if (!dockerContainer.ensureRunning()) {
             throw new IllegalStateException("failed to run container: " + dockerContainer);
