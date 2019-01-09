@@ -5,10 +5,9 @@ import java.io.IOException;
 import java.net.ServerSocket;
 
 public class PortFinder {
-    public static int find() {
+    public static int find(int retries) {
         int port = 0;
-        int retry = 10;
-        while (port == 0 && retry-- > 0) {
+        while (port == 0 && retries-- > 0) {
             try {
                 ServerSocket socket = new ServerSocket(0);
                 port = socket.getLocalPort();
@@ -17,6 +16,6 @@ public class PortFinder {
             } catch (IOException ignored) {
             }
         }
-        throw new NotFoundException("can't find available port after 10 retries");
+        throw new NotFoundException("can't find available port after " + retries + " retries");
     }
 }

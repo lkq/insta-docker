@@ -9,9 +9,9 @@ import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.api.model.Volume;
-import com.github.lkq.instadocker.util.Assert;
 import com.github.lkq.instadocker.docker.entity.PortBinding;
 import com.github.lkq.instadocker.docker.entity.VolumeBinding;
+import com.github.lkq.instadocker.util.Assert;
 import com.github.lkq.instadocker.util.InstaUtils;
 import org.slf4j.Logger;
 
@@ -38,11 +38,6 @@ public class DockerContainer {
     private final List<String> commands = new ArrayList<>();
 
     private final ContainerLogger containerLogger;
-
-    /**
-     * the docker container id, available after start
-     */
-    private String containerId;
 
     /**
      * class for manipulating docker containers.
@@ -73,7 +68,9 @@ public class DockerContainer {
     }
 
     public DockerContainer volumeBindings(List<VolumeBinding> volumeBindings) {
-        this.volumeBindings.addAll(volumeBindings);
+        if (volumeBindings != null && volumeBindings.size() > 0) {
+            this.volumeBindings.addAll(volumeBindings);
+        }
         return this;
     }
 
@@ -96,17 +93,23 @@ public class DockerContainer {
     }
 
     public DockerContainer portBindings(List<PortBinding> portBindings) {
-        this.portBindings.addAll(portBindings);
+        if (portBindings != null && portBindings.size() > 0) {
+            this.portBindings.addAll(portBindings);
+        }
         return this;
     }
 
     public DockerContainer environmentVariables(List<String> environmentVariables) {
-        this.environmentVariables.addAll(environmentVariables);
+        if (environmentVariables != null && environmentVariables.size() > 0) {
+            this.environmentVariables.addAll(environmentVariables);
+        }
         return this;
     }
 
     public DockerContainer commands(List<String> commands) {
-        this.commands.addAll(commands);
+        if (commands != null && commands.size() > 0) {
+            this.commands.addAll(commands);
+        }
         return this;
     }
 
@@ -139,7 +142,7 @@ public class DockerContainer {
     }
 
     public boolean ensureStopped(int timeoutInSeconds) {
-        dockerClient.stopContainerCmd(containerId).withTimeout(timeoutInSeconds).exec();
+        dockerClient.stopContainerCmd(containerName).withTimeout(timeoutInSeconds).exec();
         if (isRunning()) {
             logger.info("unable to stop container, still running after stop, containerName={}", containerName);
             return false;
@@ -210,13 +213,13 @@ public class DockerContainer {
             cmd.withEnv(environmentVariables);
         }
         if (commands.size() > 0) {
+            logger.info("commands: " + Arrays.asList(cmd));
             cmd.withCmd(commands);
         }
 
         CreateContainerResponse createResponse = cmd.exec();
-        containerId = createResponse.getId();
         if (exists()) {
-            logger.info("container created, containerName={}, containerId={}", containerName, containerId);
+            logger.info("container created, containerName={}, containerId={}", containerName, createResponse.getId());
             return true;
         } else {
             logger.info("container not created, not exists after created, containerName={}", containerName);
@@ -260,6 +263,11 @@ public class DockerContainer {
         }
     }
 
+    public Optional<String> containerId() {
+        InspectContainerResponse inspectResponse = dockerClient.inspectContainerCmd(containerName).exec();
+        return Optional.ofNullable(inspectResponse.getId());
+    }
+
     @Override
     public String toString() {
         return "{" +
@@ -273,7 +281,6 @@ public class DockerContainer {
                 ", \"environmentVariables\":" + environmentVariables +
                 ", \"commands\":" + commands +
                 ", \"containerLogger\":" + containerLogger +
-                ", \"containerId\":\"" + containerId + "\"" +
                 '}';
     }
 }

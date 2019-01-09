@@ -8,6 +8,6 @@ class PortFinderTest {
 
     @Test
     void canFindPort() {
-        assertTrue(PortFinder.find() > 0, "can't find valid port");
+        assertTrue(PortFinder.find(10) > 0, "can't find valid port");
     }
 }
