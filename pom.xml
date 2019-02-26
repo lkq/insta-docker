@@ -4,7 +4,7 @@
 
     <groupId>com.github.lkq</groupId>
     <artifactId>insta-docker</artifactId>
-    <version>0.2.2</version>
+    <version>0.2.3-SNAPSHOT</version>
 
     <!--required for nexus staging - begin-->
     <name>Insta Docker</name>
