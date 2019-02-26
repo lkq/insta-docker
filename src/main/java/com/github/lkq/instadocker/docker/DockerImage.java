@@ -54,10 +54,11 @@ public class DockerImage {
     public boolean ensureExists(int timeoutInSeconds) {
         try {
             if (!exists()) {
+                logger.info("image not exits, pulling imageId={}", imageId);
                 boolean pulled = dockerClient.pullImageCmd(imageId).exec(new PullImageResultCallback())
                         .awaitCompletion(timeoutInSeconds, TimeUnit.SECONDS);
-                if (pulled) {
-                    logger.info("pulled image, imageId={}", imageId);
+                if (!pulled) {
+                    logger.info("image not pulled, please check your network or enlarge timeout, imageId={}", imageId);
                 }
                 return pulled;
             } else {

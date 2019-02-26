@@ -185,7 +185,7 @@ public class DockerContainer {
             cmd.withHostName(hostName);
         }
         if (network != null) {
-            cmd.withNetworkMode(network);
+            cmd.getHostConfig().withNetworkMode(network);
         }
 
         List<Bind> binds = volumeBindings.stream().map(volumeBinding -> {
@@ -194,7 +194,7 @@ public class DockerContainer {
             logger.info("binding volume: container={}, host={}", containerPath, hostPath);
             return new Bind(hostPath, new Volume(containerPath));
         }).collect(Collectors.toList());
-        cmd.withBinds(binds);
+        cmd.getHostConfig().withBinds(binds);
 
         if (portBindings.size() > 0) {
             List<ExposedPort> exposedPorts = new ArrayList<>();
@@ -207,7 +207,8 @@ public class DockerContainer {
 
                 ports.bind(exposedPort, Ports.Binding.bindPort(portBinding.hostPort()));
             }
-            cmd.withExposedPorts(exposedPorts).withPortBindings(ports);
+            cmd.withExposedPorts(exposedPorts);
+            cmd.getHostConfig().withPortBindings(ports);
         }
         if (environmentVariables.size() > 0) {
             cmd.withEnv(environmentVariables);
